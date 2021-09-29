@@ -11,8 +11,35 @@ import time
 import cv2
 from matplotlib import pyplot as plt
 import os
+import board
+import adafruit_character_lcd.character_lcd_rgb_i2c as character_lcd
+import serial
 
+# Initialise I2C bus.
+i2c = board.I2C()  # uses board.SCL and board.SDA
 
+# Initialise the LCD class
+lcd_columns = 16
+lcd_rows = 2
+lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)
+
+# Initialize serial communiction
+try:
+    ser = serial.Serial('/dev/ttyACM0', 115200)
+except:
+    lcd.message="Serial Failed"
+    
+########################################################
+# Read Serial Input from Arduino
+########################################################
+def ReadfromArduino():
+    while (ser.in_waiting > 0):
+        try:
+            line = ser.readline().decode('utf-8').rstrip()
+            print("serial output : ", line)
+        except:
+            print("Communication Error")
+            
 ########################################################
 # Take Picture Function
 ########################################################
@@ -171,17 +198,34 @@ def calc_AngleX(res):
            print('Object coordinates are: x ', aMeanX, 'and y ', aMeanY, '.\n')
            print('Object is ', angleDelta, 'degrees from center.\n')
            
+           value = None
+           message = None
            if aMeanX > centerX and aMeanY < centerY:
-               print('Object is in Qudrant I ------------> Trun to 0.\n')
+               print('Object is in Qudrant I ------------> Turn to 0.\n')
+               message="Quadrant I\nAngle = 0"
+               value = 0
                
            if aMeanX <= centerX and aMeanY <= centerY:
-               print('Object is in Qudrant II ------------> Trun to pi/2.\n')
-           
+               print('Object is in Qudrant II ------------> Turn to pi/2.\n')
+               message="Quadrant II\nAngle = pi/2"
+               value = 1
+               
            if aMeanX < centerX and aMeanY > centerY:
-               print('Object is in Qudrant III ------------> Trun to pi.\n')
+               print('Object is in Qudrant III ------------> Turn to pi.\n')
+               message="Quadrant III\nAngle = pi"
+               value = 2
                
            if aMeanX >= centerX and aMeanY >= centerY:
-               print('Object is in Qudrant IV ------------> Trun to 3pi/2.\n')
+               print('Object is in Qudrant IV ------------> Turn to 3pi/2.\n')
+               message="Quadrant IV\nAngle = 3pi/2"
+               value = 3
+               
+           lcd.clear()
+           lcd.message = message
+           try:
+               ser.write(value.encode())
+           except:
+               print("No serial comm")
            
     else:
            print('No marker found and do nothing.\n')
@@ -298,8 +342,6 @@ def test_1():
     cv2.destroyAllWindows()
     
 #test_1() 
-
-
 
 ########################################################
 # Take Pictures Continously and Determine Object Location from Camera
