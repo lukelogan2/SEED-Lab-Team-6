@@ -25,7 +25,7 @@ lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)
 
 # Initialize serial communiction
 try:
-    ser = serial.Serial('/dev/ttyACM1', 115200)
+    ser = serial.Serial('/dev/ttyACM0', 115200)
     time.sleep(3)
 except:
     lcd.message="Serial Failed"
