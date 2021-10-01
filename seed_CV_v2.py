@@ -25,7 +25,8 @@ lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)
 
 # Initialize serial communiction
 try:
-    ser = serial.Serial('/dev/ttyACM0', 115200)
+    ser = serial.Serial('/dev/ttyACM1', 115200)
+    time.sleep(3)
 except:
     lcd.message="Serial Failed"
     
@@ -203,22 +204,22 @@ def calc_AngleX(res):
            if aMeanX > centerX and aMeanY < centerY:
                print('Object is in Qudrant I ------------> Turn to 0.\n')
                message="Quadrant I\nAngle = 0"
-               value = 0
+               value = "1"
                
            if aMeanX <= centerX and aMeanY <= centerY:
                print('Object is in Qudrant II ------------> Turn to pi/2.\n')
                message="Quadrant II\nAngle = pi/2"
-               value = 1
+               value = "2"
                
            if aMeanX < centerX and aMeanY > centerY:
                print('Object is in Qudrant III ------------> Turn to pi.\n')
                message="Quadrant III\nAngle = pi"
-               value = 2
+               value = "3"
                
            if aMeanX >= centerX and aMeanY >= centerY:
                print('Object is in Qudrant IV ------------> Turn to 3pi/2.\n')
                message="Quadrant IV\nAngle = 3pi/2"
-               value = 3
+               value = "4"
                
            lcd.clear()
            lcd.message = message
