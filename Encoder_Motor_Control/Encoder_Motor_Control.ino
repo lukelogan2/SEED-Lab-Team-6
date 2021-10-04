@@ -68,12 +68,20 @@ void loop() {
   
   double loop_time_start = millis();
   digitalWrite(pwmPower,HIGH);
+  
+  double kiIntegral;                                              //add
+  float deltaT = ((float) loop_time_start - prevT)/1000.0;        //add
+  prevT = loop_time_start;                                        //add
   // PID constants
   float kp = 25;
+  float ki = 0.5;
 
   // motor power
   double e = current_angle - target_angle;
-  double pwr = e*kp;
+  double pwr = e*kp + ki * kiIntegral;                          //add
+  if(pwr > 255){                                                //add
+  pwr = 255;
+}
     
   int dir = 0;
   // motor direction
@@ -92,9 +100,6 @@ void loop() {
     Serial.println(current_angle);
     moved = 0;
   }
-  //  Serial.print(" ");
-  //  Serial.print(pos);
-  //  Serial.println();
   double loop_time_end = millis();
 }
 
@@ -113,10 +118,7 @@ void setMotor(int dir, int pwmVal, int pwm, int in1, int in2){
   }  
 }
 
-//void setMotor(double pwrVal, int pwmPin){
-//  analogWrite(pwmPin,pwrVal);
-////  digitalWrite(in1, HIGH);
-//}
+
 
 void rightRotation() {
 if(old_time == millis()){
