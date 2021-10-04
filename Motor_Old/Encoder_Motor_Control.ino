@@ -45,6 +45,7 @@ void setup() {
 void loop() {
   // Receive Serial Input from Raspberry Pi
   if (DataRead) {
+    eprev = 0;
     Serial.print("You sent me: ");
     Serial.println(data);
     if (data == "1") {
@@ -73,22 +74,25 @@ void loop() {
   float deltaT = ((float) loop_time_start - prevT)/1000.0;        //add
   prevT = loop_time_start;                                        //add
   // PID constants
-  float kp = 25;
-  float ki = 0.5;
-
-  // motor power
+  float kp = 1;
+  float ki = 0.2;
   double e = current_angle - target_angle;
-  double pwr = e*kp + ki * kiIntegral;                          //add
+  kiIntegral = kiIntegral + deltaT*(e - eprev);
+  // motor power
+  eprev = e;
+  
+  float u = e*kp + ki * kiIntegral;                          //add
+  double pwr= fabs(u);
   if(pwr > 255){                                                //add
   pwr = 255;
 }
     
   int dir = 0;
   // motor direction
-  if(current_angle - target_angle < 0){
+  if(u < 0){
     dir = 1;
   }
-  if(current_angle - target_angle > 0){
+  if(u > 0){
     dir = -1;
   }
 
