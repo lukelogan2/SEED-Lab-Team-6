@@ -1,5 +1,9 @@
 # SEED-Lab-Mini-Project
 
+## Purpose 
+- This repository contains the code used to create a motor control system using a Raspberry Pi and an Arduino
+- This repository shows which team member was responsible for a given subsystem on the project
+
 ## Organization of this Repository
 - Motor Control contains the code uploaded to the Arduino to control the motor spinning the wheel
 - Motor Control Old contains a version of Motor Control with a PI controller that doesn't function as well
