@@ -147,9 +147,11 @@ if(old_time == millis()){                    //quits the ISR if electricl noise 
 
 // Serial Communication Handler
 void serialEvent() {
+  // If a message from the Raspberry Pi is present, read the data
   if (Serial.available() > 0) {
     data = Serial.readStringUntil('\n');
     DataRead = true;
   }
+  // Reset the serial buffer
   Serial.flush();
 }
