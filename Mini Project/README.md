@@ -1,16 +1,19 @@
 # SEED-Lab-Mini-Project
 
-## Purpose 
-- This repository contains the code used to create a motor control system using a Raspberry Pi and an Arduino
-- This repository shows which team member was responsible for each subsystem on the project
-
-## Motor Control System 
-1. Determine which quadrant of the raspberry pi's camera a yellow object is located
-2. Send the quadrant number to the Arduino 
-3. Based on the quadrant number, use the Arduino to control a motor which sets a wheel at the desired angle 
-
-![image](https://user-images.githubusercontent.com/91498910/136310094-f344c946-0d2e-4274-953e-57506c6e6239.png)
-
 ## Organization of this Repository
-- The Mini Project folder contains all of the code used in the motor driver project
-- 
+- The code used for the Arduino to control the motor is located in the "Arduino" folder 
+- The code used for the raspberry pi to control the computer vision and serial communication is located in the "Raspberry Pi" folder
+
+## Arduino 
+- Motor Control is the main program used to control the motor and wheel position from the Arduino
+- Motor Control Old is a past version of a motor controller that adds an integral controller, but doesn't function as well
+- Transfer Function Test v1 is used to collect samples of angular velocity vs time to determine the transfer function
+- Transfer Function Test v2 does the same thing as v1, but uses a longer interval to calculate the velocity to smooth the curve
+
+# Raspberry Pi
+- CV_raspberrypi.py is the python script used to execute computer vision with the pi camera and send the output to the Arduino 
+
+# Hardware Instructions
+- Connect the Arduino to the Raspberry Pi via serial USB
+- Mount the motor driver PWM shield on the Arduino and connect the shield to the motor
+- Connect the battery pack to the motor driver shield
