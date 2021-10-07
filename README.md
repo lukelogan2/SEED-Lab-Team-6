@@ -2,6 +2,8 @@
 
 ## Organization of this Repository
 - The Mini Project folder contains all of the code used in the motor driver project
+- The Project Board called "Mini Project" located in the Projects tab outlines each of the subsystems and the tasks related to each subsystem
+as well as who is responsible for each task.
 
 ## Purpose 
 - This repository contains the code used to create a motor control system using a Raspberry Pi and an Arduino
