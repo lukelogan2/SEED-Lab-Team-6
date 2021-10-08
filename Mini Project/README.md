@@ -10,8 +10,12 @@
 - Transfer Function Test v1 is used to collect samples of angular velocity vs time to determine the transfer function
 - Transfer Function Test v2 does the same thing as v1, but uses a longer interval to calculate the velocity to smooth the curve
 
-# Raspberry Pi
+## Raspberry Pi
 - CV_raspberrypi.py is the python script used to execute computer vision with the pi camera and send the output to the Arduino 
+
+## Matlab
+- picontroller is the Simulink file which is used to model the simulated and experimental closed loop step response 
+- picontrollercode.m is Matlab code that graphs the step response generated in Simulink
 
 # Hardware Instructions
 - Connect the Arduino to the Raspberry Pi via serial USB
