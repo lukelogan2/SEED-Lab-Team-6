@@ -9,6 +9,7 @@
 - Motor Control Old is a past version of a motor controller that adds an integral controller, but doesn't function as well
 - Transfer Function Test v1 is used to collect samples of angular velocity vs time to determine the transfer function
 - Transfer Function Test v2 does the same thing as v1, but uses a longer interval to calculate the velocity to smooth the curve
+- Closed loop test is used to measure the data for the experimental closed loop step response
 
 ## Raspberry Pi
 - CV_raspberrypi.py is the python script used to execute computer vision with the pi camera and send the output to the Arduino 
