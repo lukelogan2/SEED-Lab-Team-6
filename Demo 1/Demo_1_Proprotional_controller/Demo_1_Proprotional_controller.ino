@@ -1,4 +1,4 @@
-//#define PI 3.141592653589793238
+#define PI 3.141592653589793238
 #define RENCA 2   //White right
 #define RENCB 5   //Yellow right
 #define LENCA 3   //White left
@@ -22,9 +22,9 @@ bool moved = 0;
 bool rotationComplete = 0;
 bool movementComplete = 1;
 
-int rightCount = 0;
-int leftCount = 0;
-double theta;
+volatile int rightCount = 0;
+volatile int leftCount = 0;
+
 
 double wheelRadius = 0.075; //meters
 double wheelDistance = 0.31; //meters 
@@ -32,13 +32,13 @@ double v_l;
 double v_r;
 double loopTime = 10;
 
-double rho_e;
-double phi_e;
+double rho_e = 0;
+double phi_e = 0;
 
 double current_rho = 0;
 double current_phi = 0;
 
-double target_rho = 0.5;    //meters
+double target_rho = 1;    //meters
 double target_phi = 45;   //Degrees
 
 int directionRight;
@@ -46,9 +46,12 @@ int directionLeft;
 double rightPower;
 double leftPower;
 
+double count_error = 0;
+
 
 
 double encoderSteps = 16*50;
+double theta = 360/encoderSteps;
 
 void setup() {
   Serial.begin(115200);
@@ -59,24 +62,40 @@ void setup() {
   
   pinMode(pwmPower, OUTPUT);
   pinMode(PWML, OUTPUT);
- pinMode(PWMR, OUTPUT);
+  pinMode(PWMR, OUTPUT);
   pinMode(INL, OUTPUT);
   pinMode(INR, OUTPUT);
 
   attachInterrupt(digitalPinToInterrupt(RENCA),rightRotation,RISING);
-  attachInterrupt(digitalPinToInterrupt(LENCA),rightRotation,RISING);
+  attachInterrupt(digitalPinToInterrupt(LENCA),leftRotation,RISING);
 
-  theta = (360)/encoderSteps;
+  theta = (360)/encoderSteps;     //degrees
+//  theta = (2*PI)/encoderSteps;    //radians
 
 }
 
 void loop() {
   start_time = millis();
+  double target_counts = target_rho*100/47.1*800;     //meters
+//  double target_counts = target_rho*800*12/5.9;       //feet 
+
+//  if(moved == 1){
+//    Serial.print(rightCount);
+//    Serial.print("\t");
+//    Serial.println(leftCount);
+//    moved = 0;
+//  }
   digitalWrite(pwmPower, HIGH);
-  double Kp = 10;
+  double Kp = 25;
+  double Kpr = 35;
+  double Kpl = 35;
 
   if (rotationComplete == 0){
-    Serial.println("im in rotation");
+    Serial.print("im in rotation ");
+    Serial.print("rightcount: ");
+    Serial.print(rightCount);
+    Serial.print(" leftcount: ");
+    Serial.println(leftCount);
     current_phi = (rightCount - leftCount)*theta*wheelRadius / wheelDistance;
 
     /************************************************/  
@@ -84,6 +103,14 @@ void loop() {
     /************************************************/
 //      rho_e = target_rho - current_rho;
       phi_e = target_phi - current_phi;
+  if(target_phi > 0){
+      directionRight = 1;
+      directionLeft = 1;
+  }
+  else{
+    directionRight = 0;
+    directionLeft = 0;
+  }
 //      Kp = 25;
       
 
@@ -91,59 +118,79 @@ void loop() {
     //Motor Control
     /************************************************/
 
-      rightPower = Kp*phi_e;
-      rightPower = constrain(rightPower, 0, 255);
-      leftPower = Kp*phi_e;
-      leftPower = constrain(leftPower, 0, 255);
+      rightPower = fabs(Kpr*phi_e);
+      rightPower = constrain(rightPower, 0, 190);
+      leftPower = fabs(Kpl*phi_e);
+      leftPower = constrain(leftPower, 0, 190);
       
 
-      setMotor(PWMR, rightPower, INR, 1);
-      setMotor(PWML, leftPower, INL, 1);
-      
+      setMotor(PWMR, rightPower, INR, directionRight);
+      setMotor(PWML, leftPower, INL, directionLeft);
+
       
       if(phi_e < 1 && phi_e > -1){
         movementComplete = 0;
         rotationComplete = 1;
+
+        setMotor(PWMR, 0, INR, 1);
+        setMotor(PWML, 0, INL, 0);
+        delay(1000);
         rightCount = 0;
         leftCount = 0;
       }
   }
-  if (movementComplete == 0){
-    Serial.println("im in movement");
-    current_rho = (rightCount + leftCount)*theta*0.5*wheelRadius;
-    rho_e = target_rho - current_rho;
-
-      rightPower = Kp*rho_e;
-      rightPower = constrain(rightPower, 0, 255);
-      leftPower = Kp*rho_e;
-      leftPower = constrain(leftPower, 0, 255);
-      
-
+//  if (movementComplete == 0){
+//    
+//    Serial.println("rightcount: ");
+//    Serial.print(rightCount);
+//    Serial.print(" leftcount: ");
+//    Serial.println(leftCount);
+//    current_rho = (rightCount + leftCount)*theta*0.5*wheelRadius;
+//    double Kp_rho = 25;
+//    rho_e = target_rho - current_rho;
+//
+//      rightPower = Kp_rho*rho_e;
+//      rightPower = constrain(rightPower, 0, 50);
+//      leftPower = Kp_rho*rho_e;
+//      leftPower = constrain(leftPower, 0, 50);
+//      
+//
+//      setMotor(PWMR, rightPower, INR, 1);
+//      setMotor(PWML, leftPower, INL, 0);
+//      
+//      
+//      if(rho_e < 1 && rho_e > -1){
+//        movementComplete = 1;
+//        setMotor(PWMR, 0, INR, 1);
+//        setMotor(PWML, 0, INL, 0);
+//        digitalWrite(pwmPower, LOW);
+//        Serial.println("finished");
+//      }
+//  }
+if(movementComplete == 0){
+  while( rightCount < target_counts){
+    count_error = target_counts - rightCount;
+    rightPower = Kp*count_error;
+    leftPower = Kp*count_error;
+//    Serial.print("rightcount: ");
+//    Serial.print(rightCount);
+//    Serial.print(" leftcount: ");
+//    Serial.println(leftCount);
       setMotor(PWMR, rightPower, INR, 1);
       setMotor(PWML, leftPower, INL, 0);
-      
-      
-      if(rho_e < 0.1 && rho_e > -0.1){
+}
+        setMotor(PWMR, 0, INR, 1);
+        setMotor(PWML, 0, INL, 0);
+        digitalWrite(pwmPower, LOW);
         movementComplete = 1;
-        Serial.println("finished");
-      }
-  }
-
-
+        rotationComplete = 1;
+}
       
 //    analogWrite(PWMR, 170);
 //    analogWrite(PWML, 170);
 //    digitalWrite(INR, HIGH);
 //    digitalWrite(INL, HIGH);
     
-
-    
-    
-//    v_r = rightCount * theta * wheelRadius;   //right velocity
-//    v_l = leftCount * theta * wheelRadius;    //left velocity
-//
-//    theta_r = rightCount * theta;
-//    theta_l = leftCount * theta;
 
   
   run_time = millis();
@@ -162,26 +209,28 @@ void setMotor (int pwm, int pwmVal, int inval, int dir){
 void rightRotation() {
    rightEncoderCurrent = digitalRead(RENCA);
 
-   if((rightEncoderLast == LOW) && (rightEncoderCurrent == HIGH)){
+//   if((rightEncoderLast == LOW) && (rightEncoderCurrent == HIGH)){
     if(digitalRead(RENCB) == LOW){
-      rightCount += 1;
+      rightCount = rightCount + 1;
     }
     else{
-      rightCount -= 1;
+      rightCount = rightCount - 1;
     }
-   }
-   
+//   }
+ 
+   moved = 1;
 }
 
 void leftRotation() {
   leftEncoderCurrent = digitalRead(LENCA);
 
-   if((leftEncoderLast == LOW) && (leftEncoderCurrent == HIGH)){
-    if(digitalRead(LENCB) == LOW){
-      leftCount += 1;
+//   if((leftEncoderLast == LOW) && (leftEncoderCurrent == HIGH)){
+    if(digitalRead(LENCB) == HIGH){
+      leftCount = leftCount + 1;
     }
     else{
-      leftCount -= 1;
+      leftCount = leftCount - 1;
     }
-   }
+//   }
+   moved = 1;
 }
