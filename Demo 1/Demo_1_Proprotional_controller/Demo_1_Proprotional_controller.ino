@@ -53,6 +53,11 @@ double count_error = 0;
 double encoderSteps = 16*50;
 double theta = 360/encoderSteps;
 
+bool DataRead;
+const int BUF_SIZE = 50;
+char buf[BUF_SIZE];
+int rlen;
+
 void setup() {
   Serial.begin(115200);
   pinMode(RENCA, INPUT);
@@ -71,10 +76,17 @@ void setup() {
 
   theta = (360)/encoderSteps;     //degrees
 //  theta = (2*PI)/encoderSteps;    //radians
-
 }
 
 void loop() {
+  while(true) {
+    Serial.print("You sent me: ");
+    for (int i=0;i<rlen;i++) {
+      Serial.println(buf[i]);
+    }
+    DataRead = false;
+    delay(5000);
+  }
   start_time = millis();
   double target_counts = target_rho*100/47.1*800;     //meters
 //  double target_counts = target_rho*800*12/5.9;       //feet 
@@ -233,4 +245,13 @@ void leftRotation() {
     }
 //   }
    moved = 1;
+}
+
+void serialEvent() {
+  if (Serial.available() > 0) {
+    rlen = Serial.readBytes(buf,BUF_SIZE);
+    DataRead = true;
+    Serial.println("Data Received");
+  }
+  Serial.flush();
 }

@@ -42,33 +42,46 @@ def ReadfromArduino():
             print("Communication Error")
             
 
+########################################################
+# Camera Calibration
+########################################################
+def cam_Calibrate(width, height):
+    camera = PiCamera(resolution = (width, height), framerate = 30)
+    #camera.rotation = 0
+    camera.iso = 100
+    sleep(2)
+    
+    camera.shutter_speed = camera.exposure_speed
+    camera.exposure_mode = 'off'
+    g = camera.awb_gains
+    camera.awb_mode = 'fluorescent'
+    camera.awb_gains = g
+    
+    #camera.start_preview(alpha = 100)
+    #sleep(3)
+    #camera.stop_preview()
+    
+    return camera
     
 
 ########################################################
 # Take Picture Function
 ########################################################
-def take_Pic():
+def take_Pic(camera):
     # Define camera resolution and initialize camera
     rawCapture = PiRGBArray(camera)
 
     # set iso to the desired value
-    camera.iso = 100
-    camera.resolution = (1920, 1088)
+    #camera.iso = 100
+    #camera.resolution = (1920, 1088)
     # wait for the automatic gain control to settle
-    sleep(1)
-    # fix the values
-    #camera.shutter_speed = 25000
-    #camera.exposure_mode = 'off'
-    #g = camera.awb_gains
-    #camera.awb_mode = 'incandescent'
-    #camera.awb_gains = (0, 8.0)
-    #sleep(2)
-
+    #sleep(1)
+   
     #camera.start_preview(alpha=200)
     #camera.annotate_background = Color('blue')
     #camera.annotate_text = 'Assignment 2, Part 1'
     #camera.annotate_text_size = 50
-    #sleep(1)
+    #sleep(3)
     #camera.stop_preview()
 
     # grab an image from the camera
@@ -103,11 +116,11 @@ def resize_Pic(src):
 
     # resize image and store as new variable
     output = cv2.resize(src, dsize)
-    path = '/home/pi/Desktop'
-    cv2.imwrite(os.path.join(path, 'resized.jpg'), output)
-    cv2.imshow("Resized Image", output)
-    cv2.waitKey(3000)
-    cv2.destroyAllWindows()
+    #path = '/home/pi/Desktop'
+    #cv2.imwrite(os.path.join(path, 'resized.jpg'), output)
+    #cv2.imshow("Resized Image", output)
+    #cv2.waitKey(3000)
+    #cv2.destroyAllWindows()
     
     return output
 
@@ -133,8 +146,8 @@ def show_Edge(output):
     #cv2.imshow("Wide Edge Map", wide)
     #cv2.imshow("Mid Edge Map", mid)
     #cv2.imshow("Tight Edge Map", tight)
-    cv2.waitKey(6000)
-    cv2.destroyAllWindows()
+    #cv2.waitKey(6000)
+    #cv2.destroyAllWindows()
 
 
 
@@ -151,8 +164,8 @@ def color_Mask(output):
     #upper_Yellow = np.array([30,255,255])
     
     #Define range of blue color in HSV (save for later project)
-    lower_blue = np.array([100,230,20])
-    upper_blue = np.array([130,255,255])
+    lower_blue = np.array([100,50,20])
+    upper_blue = np.array([135,255,255])
     
     #Define range of orange color in HSV (save for later project)
     #lower_orange = np.array([10,100,20])
@@ -172,12 +185,12 @@ def color_Mask(output):
     
     #print(res)
     
-    path = '/home/pi/Desktop'
-    cv2.imwrite(os.path.join(path, 'color mask.jpg'), res)
+    #path = '/home/pi/Desktop'
+    #cv2.imwrite(os.path.join(path, 'color mask.jpg'), res)
     
-    cv2.imshow('Object', res)
-    cv2.waitKey(3000)
-    cv2.destroyAllWindows()
+    #cv2.imshow('Object', res)
+    #cv2.waitKey(3000)
+    #cv2.destroyAllWindows()
     
     return res
     
@@ -189,13 +202,17 @@ def color_Mask(output):
 ########################################################
 def morph_Pic(res):
     
-    kernel = np.ones((10,10), np.uint8)
-    closing = cv2.morphologyEx(res, cv2.MORPH_CLOSE, kernel)
+    kernel = np.ones((5,5), np.uint8)
+    #closing = cv2.morphologyEx(res, cv2.MORPH_CLOSE, kernel)
     # use opening since it is the most useful for this project
-    opening = cv2.morphologyEx(closing, cv2.MORPH_OPEN, kernel, iterations = 4)
+    opening = cv2.morphologyEx(res, cv2.MORPH_OPEN, kernel, iterations = 2)
     #erode = cv2.erode(res, kernel, iterations = 3)
     #path = '/home/pi/Desktop'
     #cv2.imwrite(os.path.join(path, 'morph.jpg'), opening)
+    
+    #cv2.imshow('morphed', opening)
+    #cv2.waitKey(3000)
+    #cv2.destroyAllWindows()
     
     return opening
     #return erode
@@ -226,10 +243,18 @@ def calc_AngleX(res):
            degPerPixel_X = fov/width
            pixelDelta = centerX - aMeanX 
            angleDelta = pixelDelta * degPerPixel_X
-           if angleDelta < -10:
-               angleDelta -= 6.5
-           if angleDelta > 15:
-               angleDelta += 4.0
+           if angleDelta >= -7 and angleDelta < -1:
+               angleDelta += 1.3
+           if angleDelta >= -13 and angleDelta < -7:
+               angleDelta -= 4.5
+           if angleDelta >= -23 and angleDelta < -13:
+               angleDelta -= 4.6
+           if angleDelta > 1 and angleDelta <= 7:
+               angleDelta -= 1.1
+           if angleDelta > 7 and angleDelta <= 13:
+               angleDelta += 2.7
+           if angleDelta > 13 and angleDelta <= 23:
+               angleDelta += 4.8
             
            print('Object coordinates are: x ', aMeanX, 'and y ', aMeanY, '.\n')
            #print('Object is ', angleDelta, 'degrees from center.\n')
@@ -358,17 +383,19 @@ class ShapeDetector:
 # Take Pictures Continously and Determine Object Location from Camera
 ########################################################
 #Initialize camera
-camera = PiCamera()
+#camera = PiCamera()
 
 
 #for i in range(0,8):
 #    image = take_Pic()
 #    i += 1
 
-camera.shutter_speed = 20000
-camera.awb_mode = 'incandescent'
+width = 1920
+height = 1088
 
-sleep(2)
+camera = cam_Calibrate(width, height)
+
+take_Pic(camera)
 
 #Loop to do continous obect location calculations
 while True:
@@ -376,16 +403,16 @@ while True:
     #if not i:
         
     #Store gray-scale image array as a variable 
-    src = take_Pic()
+    src = take_Pic(camera)
     
     #Store image array in a new variable
     #src = image
     
     #Call resize image function and store as a new variable
-    output = resize_Pic(src)
+    #output = resize_Pic(src)
     
     #Call Morphological Transform function to enhance picture
-    morphed = morph_Pic(output)
+    morphed = morph_Pic(src)
 
     # denoising of image saving it into dst image
     #dst = cv2.fastNlMeansDenoisingColored(output, None)
@@ -408,6 +435,7 @@ while True:
         #Disable camera
         #camera.close()
         #break
+
 
 
 
