@@ -1,4 +1,4 @@
-#define PI 3.141592653589793238
+//#define PI 3.141592653589793238
 #define RENCA 2   //White right
 #define RENCB 5   //Yellow right
 #define LENCA 3   //White left
@@ -26,7 +26,7 @@ volatile int leftCount = 0;
 
 
 double wheelRadius = 0.075; //meters
-double wheelDistance = 0.31; //meters 
+double wheelDistance = 0.308; //meters real 0.31m
 
 double rho_e = 0;
 double phi_e = 0;
@@ -35,7 +35,7 @@ double current_rho = 0;
 double current_phi = 0;
 
 double target_rho = 1;    //meters
-double target_phi = 180;   //Degrees
+double target_phi = 90;   //Degrees
 
 int directionRight;
 int directionLeft;
@@ -79,10 +79,10 @@ void loop() {
 /************************************************/  
 // PI controller configuration
 /************************************************/
-  double Kp = 25;
+  double Kp = 35;
   double Ki = 5;
-  double Kpr = 30;
-  double Kpl = 35;
+//  double Kpr = 30;
+//  double Kpl = 35;
 
 /************************************************/  
 // Rotation Control
@@ -92,10 +92,18 @@ void loop() {
     current_phi = (rightCount - leftCount)*theta*wheelRadius / wheelDistance;   //calculate the current angle
 
 /************************************************/  
-// Proportional Integral Controller
+// PI Controller
 /************************************************/
 
    phi_e = target_phi - current_phi;              //find the error between desired and current
+   if(phi_e>30)
+   {
+    Ki =0;
+   }
+   else
+   {
+    Ki =5;
+   }
    double timeChange = start_time - lastTime;     //calculate the time difference
    errorSum += (phi_e * timeChange);              //sum the previous error
    double u = Kp * phi_e + Ki * errorSum;         //determine the power from the PI
@@ -164,7 +172,7 @@ void loop() {
       rightPower = fabs(u);
       rightPower = constrain(rightPower, 0, 95);
       leftPower = fabs(u);
-      leftPower = constrain(leftPower, 0, 100);
+      leftPower = constrain(leftPower, 0, 101);
 
       setMotor(PWMR, rightPower, INR, 1);
       setMotor(PWML, leftPower, INL, 0);
