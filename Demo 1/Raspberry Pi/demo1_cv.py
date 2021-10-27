@@ -48,7 +48,7 @@ def ReadfromArduino():
 def cam_Calibrate(width, height):
     camera = PiCamera(resolution = (width, height), framerate = 30)
     #camera.rotation = 0
-    camera.iso = 100
+    camera.iso = 800
     sleep(2)
     
     camera.shutter_speed = camera.exposure_speed
@@ -205,8 +205,8 @@ def morph_Pic(res):
     kernel = np.ones((5,5), np.uint8)
     #closing = cv2.morphologyEx(res, cv2.MORPH_CLOSE, kernel)
     # use opening since it is the most useful for this project
-    opening = cv2.morphologyEx(res, cv2.MORPH_OPEN, kernel, iterations = 2)
-    #erode = cv2.erode(res, kernel, iterations = 3)
+    #opening = cv2.morphologyEx(res, cv2.MORPH_OPEN, kernel, iterations = 2)
+    erode = cv2.erode(res, kernel, iterations = 3)
     #path = '/home/pi/Desktop'
     #cv2.imwrite(os.path.join(path, 'morph.jpg'), opening)
     
@@ -214,7 +214,7 @@ def morph_Pic(res):
     #cv2.waitKey(3000)
     #cv2.destroyAllWindows()
     
-    return opening
+    return erode
     #return erode
 
 
@@ -243,18 +243,18 @@ def calc_AngleX(res):
            degPerPixel_X = fov/width
            pixelDelta = centerX - aMeanX 
            angleDelta = pixelDelta * degPerPixel_X
-           if angleDelta >= -7 and angleDelta < -1:
-               angleDelta += 1.3
-           if angleDelta >= -13 and angleDelta < -7:
-               angleDelta -= 4.5
-           if angleDelta >= -23 and angleDelta < -13:
-               angleDelta -= 4.6
-           if angleDelta > 1 and angleDelta <= 7:
-               angleDelta -= 1.1
-           if angleDelta > 7 and angleDelta <= 13:
-               angleDelta += 2.7
-           if angleDelta > 13 and angleDelta <= 23:
-               angleDelta += 4.8
+#           if angleDelta >= -7 and angleDelta < -1:
+#               angleDelta += 1.3
+#           if angleDelta >= -13 and angleDelta < -7:
+#               angleDelta -= 4.5
+#           if angleDelta >= -23 and angleDelta < -13:
+#               angleDelta -= 4.6
+#           if angleDelta > 1 and angleDelta <= 7:
+#               angleDelta -= 1.1
+#           if angleDelta > 7 and angleDelta <= 13:
+#               angleDelta += 2.7
+#           if angleDelta > 13 and angleDelta <= 23:
+#               angleDelta += 4.8
             
            print('Object coordinates are: x ', aMeanX, 'and y ', aMeanY, '.\n')
            #print('Object is ', angleDelta, 'degrees from center.\n')

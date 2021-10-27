@@ -37,6 +37,10 @@ def cam_Calibrate(width, height):
     #camera.start_preview(alpha = 100)
     #sleep(3)
     #camera.stop_preview()
+    for i in range(1,8):
+        rawCapture = PiRGBArray(camera)
+        camera.capture(rawCapture, format="bgr")
+        image = rawCapture.array
     
     return camera
     
@@ -142,9 +146,7 @@ def morph_Pic(res):
 ########################################################
 def calc_AngleX(res):
     fov = 53.5        #field of view of camera
-    length_image = 1920     #length of image in pixels
-    f = 1550        #focal length of camera in pixels
- 
+    fov_adj = 62      #field of view of camera adjusting for 3 inch offset from center of rotation
     a = np.array(res)
     a0 = np.nonzero(a)
     
@@ -159,21 +161,9 @@ def calc_AngleX(res):
            length = res.shape[0]
            centerX = width/2
            centerY = length/2
-           degPerPixel_X = fov/width
-           pixelDelta = centerX - aMeanX 
+           degPerPixel_X = fov_adj/width
+           pixelDelta = centerX-80 - aMeanX  #Adjust center point to match camera position by subtracting 80 from center
            angleDelta = pixelDelta * degPerPixel_X
-           # if angleDelta >= -7 and angleDelta < -1:
-               # angleDelta += 1.3
-           # if angleDelta >= -13 and angleDelta < -7:
-               # angleDelta -= 4.5
-           # if angleDelta >= -23 and angleDelta < -13:
-               # angleDelta -= 4.6
-           # if angleDelta > 1 and angleDelta <= 7:
-               # angleDelta -= 1.1
-           # if angleDelta > 7 and angleDelta <= 13:
-               # angleDelta += 2.7
-           # if angleDelta > 13 and angleDelta <= 23:
-               # angleDelta += 4.8
             
            print('Object coordinates are: x ', aMeanX, 'and y ', aMeanY, '.\n')
            #print('Object is ', angleDelta, 'degrees from center.\n')
@@ -198,12 +188,9 @@ def calc_AngleX(res):
 
 
 width = 1920
-height = 1080
+height = 1088
 
 camera = cam_Calibrate(width, height)
-
-for i in range(0,8):
-   image = take_Pic(camera)
 
 #Loop to do continous obect location calculations
 while True:
