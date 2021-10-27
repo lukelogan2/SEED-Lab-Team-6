@@ -28,8 +28,8 @@ volatile int leftCount = 0;
 double wheelRadius = 0.075; //meters
 double wheelDistance = 0.308; //meters real 0.31m
 
-double rho_e = 0;
-double phi_e = 0;
+double rho_e = 0;   //distance error
+double phi_e = 0;   //angle error
 
 double current_rho = 0;
 double current_phi = 0;
@@ -42,8 +42,8 @@ int directionLeft;
 double rightPower;
 double leftPower;
 
-double count_error = 0;
-double errorSum = 0;
+double count_error = 0; //count sum for movement
+double errorSum = 0;    //error sum for integral controller
 
 double encoderSteps = 16*50;
 double theta = 360/encoderSteps;
@@ -74,15 +74,13 @@ void loop() {
   double target_counts = target_rho*100/47.1*800;     //meters
 //  double target_counts = target_rho*800*12/5.9;       //feet 
 
-  digitalWrite(pwmPower, HIGH);
+  digitalWrite(pwmPower, HIGH);   //give the motor power
   
 /************************************************/  
 // PI controller configuration
 /************************************************/
   double Kp = 35;
   double Ki = 5;
-//  double Kpr = 30;
-//  double Kpl = 35;
 
 /************************************************/  
 // Rotation Control
@@ -112,11 +110,11 @@ void loop() {
 // Direction determination
 /************************************************/
 
-  if(phi_e >= 0){
+  if(phi_e >= 0){         //go counterclockwise
       directionRight = 1;
       directionLeft = 1;
   }
-  else{
+  else{                   //go clockwise
       directionRight = 0;
       directionLeft = 0;
   }
@@ -127,13 +125,13 @@ void loop() {
 /************************************************/
 
       rightPower = fabs(u);
-      rightPower = constrain(rightPower, 0, 65);
+      rightPower = constrain(rightPower, 0, 65);    //constrain the power to prevent slipping on slick surfaces
       leftPower = fabs(u);
-      leftPower = constrain(leftPower, 0, 70);
+      leftPower = constrain(leftPower, 0, 70);      //constrain the power to prevent slipping on slick surfaces
       
 
-      setMotor(PWMR, rightPower, INR, directionRight);
-      setMotor(PWML, leftPower, INL, directionLeft);
+      setMotor(PWMR, rightPower, INR, directionRight);    //call the motor function right motor based on direction needed to rotate
+      setMotor(PWML, leftPower, INL, directionLeft);      //call the motor function left motor based on direction needed to rotate
 
 /************************************************/  
 // Check to end rotation
@@ -170,22 +168,22 @@ void loop() {
 /************************************************/
    
       rightPower = fabs(u);
-      rightPower = constrain(rightPower, 0, 95);
+      rightPower = constrain(rightPower, 0, 95);    //constrain the power to prevent slipping on slick surfaces
       leftPower = fabs(u);
-      leftPower = constrain(leftPower, 0, 101);
+      leftPower = constrain(leftPower, 0, 101);     //constrain the power to prevent slipping on slick surfaces
 
-      setMotor(PWMR, rightPower, INR, 1);
-      setMotor(PWML, leftPower, INL, 0);
+      setMotor(PWMR, rightPower, INR, 1);   //call the motor function right motor forward
+      setMotor(PWML, leftPower, INL, 0);    //call the motor function left motor forward
       lastTime = start_time;
    }
    
 /************************************************/  
 // Turn off the motor to stop
 /************************************************/
-      setMotor(PWMR, 0, INR, 1);
-      setMotor(PWML, 0, INL, 0);
-      digitalWrite(pwmPower, LOW);
-      movementComplete = 1;
+      setMotor(PWMR, 0, INR, 1);    //call the motor function
+      setMotor(PWML, 0, INL, 0);    //call the motor function
+      digitalWrite(pwmPower, LOW);  //stop power to the motor
+      movementComplete = 1;         
       rotationComplete = 1;
   }
     
@@ -196,12 +194,12 @@ lastTime = start_time;
 // Motor Function
 /************************************************/
 void setMotor (int pwm, int pwmVal, int inval, int dir){
-  analogWrite(pwm, pwmVal);
+  analogWrite(pwm, pwmVal);     //write the power to the motor
   if(dir == 1){
-    digitalWrite(inval, HIGH);
+    digitalWrite(inval, HIGH);  //define direction of the motor
   }
   if(dir == 0){
-    digitalWrite(inval, LOW);
+    digitalWrite(inval, LOW);   //define direction of the motor
   }
 }
 
