@@ -21,9 +21,11 @@ Using the rover we designed...
 - Connect the smaller black battery to the Raspberry Pia via USB C
 - Connect the larger battery to the motor driver
 - Ensure there are no loose wires between the Arduino and the motors 
+- 
 For the drive test...
 - Input an angle and distance in the Arduino script "arduino_pi_controller.ino"
 - Set the rover on the ground and push the button on the Arduino to start the program
+- 
 For the computer vision test...
 - Run the python script demo1_CV_version2.py on the raspberry pi
 - Ensure the LCD is connected to the raspberry pi and displaying angles
