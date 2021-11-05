@@ -23,6 +23,8 @@ bool movementComplete = 1;
 
 volatile int rightCount = 0;
 volatile int leftCount = 0;
+volatile int totalCount = 0;
+volatile int diffCount = 0;
 
 
 double wheelRadius = 0.075; //meters
@@ -34,8 +36,8 @@ double phi_e = 0;   //angle error
 double current_rho = 0;
 double current_phi = 0;
 
-double target_rho = 1;    //meters
-double target_phi = 90;   //Degrees
+double target_rho = 0;    //meters
+double target_phi = 1;   //Degrees
 
 int directionRight;
 int directionLeft;
@@ -55,6 +57,7 @@ bool receiveAngle = false;
 bool receiveFlag = false;
 bool doneFlag = false;  // Declares the rover has reached the tape
 double angle_to_center; // Angle between the rover's path and the tape
+
 
 void setup() {
   Serial.begin(115200);
@@ -78,12 +81,13 @@ void setup() {
 }
 
 void loop() {
-  // Read Serial Input from pi and print it
-  if (DataRead) {
+    // Read Serial Input from pi and print it
+if (DataRead) {
     DataRead = false;
-    Serial.print("Serial Message: ");
-    Serial.println(data);
+    //Serial.print("Serial Message: ");
+    //Serial.println(data);
   }
+  
   start_time = millis();      //initial time polling
   double target_counts = target_rho*100/47.1*800;     //meters
 //  double target_counts = target_rho*800*12/5.9;       //feet 
@@ -96,11 +100,21 @@ void loop() {
   double Kp = 35;
   double Ki = 5;
 
+//  Serial.print("R ");
+//  Serial.print(rightCount);
+//  Serial.print("  L ");
+//  Serial.println(leftCount);
 /************************************************/  
 // Rotation Control
 /************************************************/
 
   if (rotationComplete == 0){
+    if(doneFlag == false){
+       setMotor(PWMR, 60, INR, 0);    //call the motor function right motor based on direction needed to rotate
+       setMotor(PWML, 60, INL, 0);      //call the motor function left motor based on direction needed to rotate
+
+    }
+    if(doneFlag == true){
     current_phi = (rightCount - leftCount)*theta*wheelRadius / wheelDistance;   //calculate the current angle
 
 /************************************************/  
@@ -151,7 +165,7 @@ void loop() {
 // Check to end rotation
 /************************************************/
       if(phi_e < 1 && phi_e > -1){
-        movementComplete = 0;
+        movementComplete = 1;
         rotationComplete = 1;
 
         setMotor(PWMR, 0, INR, 1);
@@ -160,31 +174,46 @@ void loop() {
         rightCount = 0;
         leftCount = 0;
       }
+      
+  }
   }
 
 /************************************************/  
 // Movement Control
 /************************************************/
   if(movementComplete == 0){
-    while( rightCount < target_counts){
+    while( totalCount < target_counts){
+      totalCount = (rightCount + leftCount)/2;
       start_time = millis();
-
+      
 /************************************************/  
 // PI controller
 /************************************************/
-      count_error = target_counts - rightCount;   //find the error between desired and current
+      count_error = target_counts - totalCount;   //find the error between desired and current
       double timeChange = start_time - lastTime;  //calculate the time difference
       errorSum += (count_error * timeChange);     //sum the previous error
-      double u = Kp * phi_e + Ki * errorSum;      //determine the power from the PI
-
+      double u = Kp * count_error + Ki * errorSum;      //determine the power from the PI
+      
 /************************************************/  
 // Motor Control
 /************************************************/
+
+diffCount = rightCount - leftCount;
+if(diffCount > 0){
+  leftPower = fabs(u + diffCount);
+  rightPower = fabs(u);
+}
+if(diffCount < 0){
+  rightPower = fabs(u) + fabs(diffCount);
+  leftPower = fabs(u);
+}
+if(diffCount == 0){
+  rightPower = fabs(u);
+  leftPower = fabs(u);
+}
    
-      rightPower = fabs(u);
-      rightPower = constrain(rightPower, 0, 95);    //constrain the power to prevent slipping on slick surfaces
-      leftPower = fabs(u);
-      leftPower = constrain(leftPower, 0, 101);     //constrain the power to prevent slipping on slick surfaces
+//      rightPower = constrain(rightPower, 0, 95);    //constrain the power to prevent slipping on slick surfaces
+//      leftPower = constrain(leftPower, 0, 101);     //constrain the power to prevent slipping on slick surfaces
 
       setMotor(PWMR, rightPower, INR, 1);   //call the motor function right motor forward
       setMotor(PWML, leftPower, INL, 0);    //call the motor function left motor forward
