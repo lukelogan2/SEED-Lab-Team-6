@@ -34,8 +34,8 @@ double phi_e = 0;   //angle error
 double current_rho = 0;
 double current_phi = 0;
 
-double target_rho = 1;    //meters
-double target_phi = 90;   //Degrees
+double target_rho = 5;    //meters
+double target_phi = 0;   //Degrees
 
 int directionRight;
 int directionLeft;

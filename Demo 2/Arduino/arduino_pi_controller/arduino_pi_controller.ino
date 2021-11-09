@@ -9,8 +9,18 @@
 #define INL 7
 #define pwmPower 4
 
+// State variables
+#define STATE_FIND_TAPE         20
+#define STATE_ROTATE_TO_TAPE    21
+#define STATE_DRIVE_TO_TAPE     22
+#define STATE_FOLLOW_TAPE       23
+
+int current_state = STATE_FIND_TAPE;
+
+
 double start_time = 0;
 double lastTime = 0;
+double tape_found_time = 0;
 
 int rightEncoderCurrent = LOW;
 int rightEncoderLast = rightEncoderCurrent;
@@ -36,8 +46,8 @@ double phi_e = 0;   //angle error
 double current_rho = 0;
 double current_phi = 0;
 
-double target_rho = 0;    //meters
-double target_phi = 1;   //Degrees
+double target_rho = 0.5;    //meters
+double target_phi = 0;   //Degrees
 
 int directionRight;
 int directionLeft;
@@ -53,11 +63,10 @@ double theta = 360/encoderSteps;
 // Serial Input from Pi Variables 
 String data;
 bool DataRead = false;
-bool receiveAngle = false;
-bool receiveFlag = false;
-bool doneFlag = false;  // Declares the rover has reached the tape
-double angle_to_center; // Angle between the rover's path and the tape
-
+int doneFlag = 0;  // Declares the rover has reached the tape
+int startFlag = 0; 
+double angle_to_tape; // Angle between the rover's path and the tape
+bool setTarget = false;
 
 void setup() {
   Serial.begin(115200);
@@ -82,10 +91,8 @@ void setup() {
 
 void loop() {
     // Read Serial Input from pi and print it
-if (DataRead) {
+  if (DataRead) {
     DataRead = false;
-    //Serial.print("Serial Message: ");
-    //Serial.println(data);
   }
   
   start_time = millis();      //initial time polling
@@ -108,18 +115,112 @@ if (DataRead) {
 // Rotation Control
 /************************************************/
 
-  if (rotationComplete == 0){
-    if(doneFlag == false){
+  if (startFlag == 1 && rotationComplete == 0){
+    if(angle_to_tape == 0){
        setMotor(PWMR, 60, INR, 0);    //call the motor function right motor based on direction needed to rotate
        setMotor(PWML, 60, INL, 0);      //call the motor function left motor based on direction needed to rotate
-
     }
-    if(doneFlag == true){
-    current_phi = (rightCount - leftCount)*theta*wheelRadius / wheelDistance;   //calculate the current angle
+    else if (tape_found_time == 0) {
+      //Serial.println("Tape Found");
+      setMotor(PWMR, 0, INR, 1);
+      setMotor(PWML, 0, INL, 0);
+      rightCount = 0;
+      leftCount = 0;
+      tape_found_time = millis();
+      setTarget = true;
+//    current_phi = (rightCount - leftCount)*theta*wheelRadius / wheelDistance;   //calculate the current angle
+    }
+    else if (millis() - tape_found_time > 3000) {
+      //Serial.println("Rotate to Tape");
+      if (setTarget) {
+        Serial.print("Set target angle: ");
+        Serial.println(angle_to_tape);
+        target_phi = 13.7;
+        setTarget = false;
+      }
+      state_rotate_to_tape();
+    }
+  }
+
 
 /************************************************/  
-// PI Controller
+// Movement Control
 /************************************************/
+  if(movementComplete == 0) {
+    //Serial.println("Movement");
+    while (totalCount < target_counts) {
+      totalCount = (rightCount + leftCount)/2;
+      start_time = millis();
+      
+      /************************************************/  
+      // PI controller
+      /************************************************/
+      count_error = target_counts - totalCount;   //find the error between desired and current
+      double timeChange = start_time - lastTime;  //calculate the time difference
+      errorSum += (count_error * timeChange);     //sum the previous error
+      double u = Kp * count_error + Ki * errorSum;      //determine the power from the PI
+      
+      /************************************************/  
+      // Motor Control
+      /************************************************/
+      
+      diffCount = rightCount - leftCount;
+      if(diffCount > 0){
+        leftPower = fabs(u + diffCount);
+        rightPower = fabs(u);
+      }
+      if(diffCount < 0){
+        rightPower = fabs(u) + fabs(diffCount);
+        leftPower = fabs(u);
+      }
+      if(diffCount == 0){
+        rightPower = fabs(u);
+        leftPower = fabs(u);
+      }
+   
+//      rightPower = constrain(rightPower, 0, 95);    //constrain the power to prevent slipping on slick surfaces
+//      leftPower = constrain(leftPower, 0, 101);     //constrain the power to prevent slipping on slick surfaces
+
+      setMotor(PWMR, rightPower, INR, 1);   //call the motor function right motor forward
+      setMotor(PWML, leftPower, INL, 0);    //call the motor function left motor forward
+      lastTime = start_time;
+   }
+   
+/************************************************/  
+// Turn off the motor to stop
+/************************************************/
+      //Serial.println("Movement Complete");
+      setMotor(PWMR, 0, INR, 1);    //call the motor function
+      setMotor(PWML, 0, INL, 0);    //call the motor function
+      digitalWrite(pwmPower, LOW);  //stop power to the motor
+      movementComplete = 1;         
+      rotationComplete = 1;
+  }
+    
+  lastTime = start_time;
+}
+
+/***********************************************/
+// State Functions
+/***********************************************/
+
+void state_rotate_to_tape() {
+  /************************************************/  
+  // PI controller configuration
+  /************************************************/
+  double Kp = 35;
+  double Ki = 5;
+
+  /************************************************/  
+  // Rotation Control
+  /************************************************/
+
+  if (rotationComplete == 0) {
+    current_phi = (rightCount - leftCount)*theta*wheelRadius / wheelDistance;   //calculate the current angle
+
+  /************************************************/  
+  // PI Controller
+  /************************************************/
 
    phi_e = target_phi - current_phi;              //find the error between desired and current
    if(phi_e>30)
@@ -138,7 +239,7 @@ if (DataRead) {
 // Direction determination
 /************************************************/
 
-  if(phi_e >= 0){         //go counterclockwise
+  if (phi_e >= 0) {         //go counterclockwise
       directionRight = 1;
       directionLeft = 1;
   }
@@ -148,24 +249,25 @@ if (DataRead) {
   }
 
       
-/************************************************/
-//Motor Control
-/************************************************/
+  /************************************************/
+  //Motor Control
+  /************************************************/
 
-      rightPower = fabs(u);
-      rightPower = constrain(rightPower, 0, 65);    //constrain the power to prevent slipping on slick surfaces
-      leftPower = fabs(u);
-      leftPower = constrain(leftPower, 0, 70);      //constrain the power to prevent slipping on slick surfaces
-      
+    rightPower = fabs(u);
+    rightPower = constrain(rightPower, 0, 65);    //constrain the power to prevent slipping on slick surfaces
+    leftPower = fabs(u);
+    leftPower = constrain(leftPower, 0, 70);      //constrain the power to prevent slipping on slick surfaces
+    
 
-      setMotor(PWMR, rightPower, INR, directionRight);    //call the motor function right motor based on direction needed to rotate
-      setMotor(PWML, leftPower, INL, directionLeft);      //call the motor function left motor based on direction needed to rotate
+    setMotor(PWMR, rightPower, INR, directionRight);    //call the motor function right motor based on direction needed to rotate
+    setMotor(PWML, leftPower, INL, directionLeft);      //call the motor function left motor based on direction needed to rotate
 
-/************************************************/  
-// Check to end rotation
-/************************************************/
+  /************************************************/  
+  // Check to end rotation
+  /************************************************/
       if(phi_e < 1 && phi_e > -1){
-        movementComplete = 1;
+        Serial.println("Rotation Complete");
+        movementComplete = 0;
         rotationComplete = 1;
 
         setMotor(PWMR, 0, INR, 1);
@@ -174,64 +276,67 @@ if (DataRead) {
         rightCount = 0;
         leftCount = 0;
       }
-      
   }
-  }
+}
 
-/************************************************/  
-// Movement Control
-/************************************************/
-  if(movementComplete == 0){
-    while( totalCount < target_counts){
-      totalCount = (rightCount + leftCount)/2;
-      start_time = millis();
-      
-/************************************************/  
-// PI controller
-/************************************************/
-      count_error = target_counts - totalCount;   //find the error between desired and current
-      double timeChange = start_time - lastTime;  //calculate the time difference
-      errorSum += (count_error * timeChange);     //sum the previous error
-      double u = Kp * count_error + Ki * errorSum;      //determine the power from the PI
-      
-/************************************************/  
-// Motor Control
-/************************************************/
+//void state_drive_to_tape() {
+//   /************************************************/  
+//  // Movement Control
+//  /************************************************/
+//    if(movementComplete == 0) {
+//      //Serial.println("Movement");
+//      while (totalCount < target_counts) {
+//        totalCount = (rightCount + leftCount)/2;
+//        start_time = millis();
+//        
+//        /************************************************/  
+//        // PI controller
+//        /************************************************/
+//        count_error = target_counts - totalCount;   //find the error between desired and current
+//        double timeChange = start_time - lastTime;  //calculate the time difference
+//        errorSum += (count_error * timeChange);     //sum the previous error
+//        double u = Kp * count_error + Ki * errorSum;      //determine the power from the PI
+//        
+//        /************************************************/  
+//        // Motor Control
+//        /************************************************/
+//        
+//        diffCount = rightCount - leftCount;
+//        if(diffCount > 0){
+//          leftPower = fabs(u + diffCount);
+//          rightPower = fabs(u);
+//        }
+//        if(diffCount < 0){
+//          rightPower = fabs(u) + fabs(diffCount);
+//          leftPower = fabs(u);
+//        }
+//        if(diffCount == 0){
+//          rightPower = fabs(u);
+//          leftPower = fabs(u);
+//        }
+//     
+//  //      rightPower = constrain(rightPower, 0, 95);    //constrain the power to prevent slipping on slick surfaces
+//  //      leftPower = constrain(leftPower, 0, 101);     //constrain the power to prevent slipping on slick surfaces
+//  
+//        setMotor(PWMR, rightPower, INR, 1);   //call the motor function right motor forward
+//        setMotor(PWML, leftPower, INL, 0);    //call the motor function left motor forward
+//        lastTime = start_time;
+//     }
+//     
+//    /************************************************/  
+//    // Turn off the motor to stop
+//    /************************************************/
+//    //Serial.println("Movement Complete");
+//    setMotor(PWMR, 0, INR, 1);    //call the motor function
+//    setMotor(PWML, 0, INL, 0);    //call the motor function
+//    digitalWrite(pwmPower, LOW);  //stop power to the motor
+//    movementComplete = 1;         
+//    rotationComplete = 1;
+//    }
+//      
+//    lastTime = start_time;
+//}
 
-diffCount = rightCount - leftCount;
-if(diffCount > 0){
-  leftPower = fabs(u + diffCount);
-  rightPower = fabs(u);
-}
-if(diffCount < 0){
-  rightPower = fabs(u) + fabs(diffCount);
-  leftPower = fabs(u);
-}
-if(diffCount == 0){
-  rightPower = fabs(u);
-  leftPower = fabs(u);
-}
-   
-//      rightPower = constrain(rightPower, 0, 95);    //constrain the power to prevent slipping on slick surfaces
-//      leftPower = constrain(leftPower, 0, 101);     //constrain the power to prevent slipping on slick surfaces
-
-      setMotor(PWMR, rightPower, INR, 1);   //call the motor function right motor forward
-      setMotor(PWML, leftPower, INL, 0);    //call the motor function left motor forward
-      lastTime = start_time;
-   }
-   
-/************************************************/  
-// Turn off the motor to stop
-/************************************************/
-      setMotor(PWMR, 0, INR, 1);    //call the motor function
-      setMotor(PWML, 0, INL, 0);    //call the motor function
-      digitalWrite(pwmPower, LOW);  //stop power to the motor
-      movementComplete = 1;         
-      rotationComplete = 1;
-  }
-    
-lastTime = start_time;
-}
 
 /************************************************/  
 // Motor Function
@@ -275,17 +380,20 @@ void serialEvent() {
   // If a message from the Raspberry Pi is present, read the data
   if (Serial.available() > 0) {
     data = Serial.readStringUntil('\n');
-    if (data == "start") {
-      receiveAngle = true;
+    if (data[0] == 'a') {
+      String angle_sub = data.substring(1);
+      //Serial.println(angle_sub);
+      angle_to_tape = angle_sub.toDouble();
     }
-    else if (receiveAngle) {
-      angle_to_center = data.toDouble();
-      receiveAngle = false;
-      receiveFlag = true;
+    else if (data[0] == 'f') {
+      String flag_char = data.substring(1);
+      //Serial.println(flag_char);
+      doneFlag = flag_char.toInt();
     }
-    else if (receiveFlag) {
-      doneFlag = data.toInt();
-      receiveFlag = false;
+    else if (data[0] == 's') {
+      String flag_char = data.substring(1);
+      //Serial.println(flag_char);
+      startFlag = flag_char.toInt();
     }
     DataRead = true;
   }

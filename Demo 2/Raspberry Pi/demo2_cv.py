@@ -19,6 +19,8 @@ lcd_columns = 16
 lcd_rows = 2
 lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)        
 
+state = 0
+
 # Initialize serial communiction
 try:
     ser = serial.Serial('/dev/ttyACM0', 115200)
@@ -40,18 +42,11 @@ def ReadfromArduino():
 ########################################################
 # Write Serial Data to Arduino
 ########################################################
-def sendSerial(angle, doneFlag):
-    angle_str = str(angle)
-    doneFlag_str = str(doneFlag)
+def sendSerial(message):
     try:
-        ser.write(b"start")
-        time.sleep(1)
-        ser.write(angle_str.encode())
-        time.sleep(1)
-        ser.write(doneFlag_str.encode())
-        time.sleep(1)
+        ser.write(message.encode())
     except:
-        print("No serial comm")
+        print("Serial Message Failed to Send")
 
 ########################################################
 # Camera Calibration
@@ -65,7 +60,7 @@ def cam_Calibrate(width, height):
     camera.shutter_speed = camera.exposure_speed
     camera.exposure_mode = 'off'
     g = camera.awb_gains
-    camera.awb_mode = 'off'
+    camera.awb_mode = 'fluorescent'
     camera.awb_gains = g
     
     #camera.start_preview(alpha = 100)
@@ -75,6 +70,9 @@ def cam_Calibrate(width, height):
         rawCapture = PiRGBArray(camera)
         camera.capture(rawCapture, format="bgr")
         image = rawCapture.array
+    
+    start_str = "s1"
+    sendSerial(start_str)
     
     return camera
     
@@ -202,14 +200,15 @@ def calc_AngleX(res):
            print('Object coordinates are: x ', aMeanX, 'and y ', aMeanY, '.\n')
            #print('Object is ', angleDelta, 'degrees from center.\n')
            
-           doneFlag = 1
            message="Angle = {:.2f}".format(angleDelta)
                
            print(message)
            lcd.clear()
            lcd.message = message
            
-           sendSerial(angleDelta, doneFlag)
+           #sendSerial(angleDelta, doneFlag)
+           angle_serial = "a" + str(angleDelta)
+           sendSerial(angle_serial)
            
     else:
            print('No marker found and do nothing.\n')
@@ -253,7 +252,7 @@ while True:
     
     #Call function to determine object location and angle from camera focal point
     calc_AngleX(res)
-        
+    
     #else:
         #Disable camera
         #camera.close()
