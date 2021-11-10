@@ -255,6 +255,7 @@ void state_rotate_to_tape() {
           Serial.println("STATE_DRIVE_TO_TAPE");
         }
         else {
+          doneFlag = 0;
           state = STATE_FOLLOW_TAPE;
           Serial.println("STATE_FOLLOW_TAPE");
         }
@@ -339,8 +340,6 @@ void state_follow_tape() {
     /************************************************/  
 // Movement Control
 /************************************************/
-  if(movementComplete == 0) {
-    //Serial.println("Movement");
     if (doneFlag == 0) {
       //totalCount = (rightCount + leftCount)/2;
       start_time = millis();
@@ -374,8 +373,20 @@ void state_follow_tape() {
 //      rightPower = constrain(rightPower, 0, 95);    //constrain the power to prevent slipping on slick surfaces
 //      leftPower = constrain(leftPower, 0, 101);     //constrain the power to prevent slipping on slick surfaces
 
-      setMotor(PWMR, 60, INR, 1);   //call the motor function right motor forward
-      setMotor(PWML, 60, INL, 0);    //call the motor function left motor forward
+      if (angle_to_tape > 2) {
+        rightPower = 50;
+        leftPower = 75;
+      }
+      else if (angle_to_tape < -2) {
+        rightPower = 75;
+        leftPower = 50;
+      }
+      else {
+        rightPower = 50;
+        leftPower = 50;
+      }
+      setMotor(PWMR, rightPower, INR, 1);   //call the motor function right motor forward
+      setMotor(PWML, leftPower, INL, 0);    //call the motor function left motor forward
       lastTime = start_time;
    }
    else {
@@ -391,7 +402,6 @@ void state_follow_tape() {
       rotationComplete = 1;
       Serial.println("Reached the end of tape");
    }
-  }
     
   lastTime = start_time;
 }

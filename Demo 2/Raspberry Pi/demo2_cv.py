@@ -23,7 +23,7 @@ found_tape = False # Flag if the rover has found tape
 
 # Initialize serial communiction
 try:
-    ser = serial.Serial('/dev/ttyACM0', 115200)
+    ser = serial.Serial('/dev/ttyACM0', baudrate=115200, write_timeout=2)
     time.sleep(3)
 except:
     lcd.message="Serial Failed"
@@ -160,8 +160,8 @@ def morph_Pic(res):
     kernel = np.ones((5,5), np.uint8)
     #closing = cv2.morphologyEx(res, cv2.MORPH_CLOSE, kernel)
     # use opening since it is the most useful for this project
-    #opening = cv2.morphologyEx(res, cv2.MORPH_OPEN, kernel, iterations = 2)
-    erode = cv2.erode(res, kernel, iterations = 3)
+    opening = cv2.morphologyEx(res, cv2.MORPH_OPEN, kernel, iterations = 2)
+    #erode = cv2.erode(res, kernel, iterations = 3)
     #path = '/home/pi/Desktop'
     #cv2.imwrite(os.path.join(path, 'morph.jpg'), opening)
     
@@ -170,7 +170,7 @@ def morph_Pic(res):
     #cv2.destroyAllWindows()
     
     #return opening
-    return erode
+    return opening
 
 
 ########################################################
@@ -214,10 +214,8 @@ def calc_AngleX(res):
            
     else:
            print('No marker found and do nothing.\n')
-           if (found_tape):
-               print("Sending done flag")
-               msg_serial = "f1"
-               sendSerial(msg_serial)
+           msg_serial = "f1"
+           sendSerial(msg_serial)
             
             
 
