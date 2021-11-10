@@ -19,7 +19,7 @@ lcd_columns = 16
 lcd_rows = 2
 lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)        
 
-state = 0
+found_tape = False # Flag if the rover has found tape
 
 # Initialize serial communiction
 try:
@@ -184,6 +184,8 @@ def calc_AngleX(res):
     
     #print(np.mean(a0, axis=1))
     if len(a0[0]) and len(a0[1]):
+           global found_tape
+           found_tape = True
            #aMeanY, aMeanX, aMeanZ = np.nanmean(a0, axis=1, axis=0)
            aMeanY, aMeanX, aMeanZ = np.nanmean(a0, axis=1)
            #grab image width, divide by 2 to find center pixel, solve for degree per pixel
@@ -212,6 +214,11 @@ def calc_AngleX(res):
            
     else:
            print('No marker found and do nothing.\n')
+           if (found_tape):
+               print("Sending done flag")
+               msg_serial = "f1"
+               sendSerial(msg_serial)
+            
             
 
 ########################################################

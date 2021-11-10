@@ -15,8 +15,8 @@
 #define STATE_DRIVE_TO_TAPE     22
 #define STATE_FOLLOW_TAPE       23
 
-int current_state = STATE_FIND_TAPE;
-
+int state = STATE_FIND_TAPE;
+int prev_state = STATE_FIND_TAPE;
 
 double start_time = 0;
 double lastTime = 0;
@@ -57,8 +57,12 @@ double leftPower;
 double count_error = 0; //count sum for movement
 double errorSum = 0;    //error sum for integral controller
 
+double Kp;
+double Ki;
+
 double encoderSteps = 16*50;
 double theta = 360/encoderSteps;
+double target_counts;
 
 // Serial Input from Pi Variables 
 String data;
@@ -96,7 +100,7 @@ void loop() {
   }
   
   start_time = millis();      //initial time polling
-  double target_counts = target_rho*100/47.1*800;     //meters
+  target_counts = target_rho*100/47.1*800;     //meters
 //  double target_counts = target_rho*800*12/5.9;       //feet 
 
   digitalWrite(pwmPower, HIGH);   //give the motor power
@@ -104,21 +108,47 @@ void loop() {
 /************************************************/  
 // PI controller configuration
 /************************************************/
-  double Kp = 35;
-  double Ki = 5;
+  Kp = 35;
+  Ki = 5;
 
 //  Serial.print("R ");
 //  Serial.print(rightCount);
 //  Serial.print("  L ");
 //  Serial.println(leftCount);
-/************************************************/  
+
+  // --------------------------------------
+  // State Machine Conditional Statements
+  // --------------------------------------
+  if (state == STATE_FIND_TAPE) {
+    state_find_tape();
+  }
+  else if (state == STATE_ROTATE_TO_TAPE) {
+    state_rotate_to_tape();
+  }
+  else if (state == STATE_DRIVE_TO_TAPE) {
+    state_drive_to_tape();
+  }
+  else if (state == STATE_FOLLOW_TAPE) {
+    state_follow_tape();
+  }
+}
+
+// =======================================================================
+// Start of State Functions
+// =======================================================================
+
+// #########################################################
+// STATE FUNCTION TO ROTATE UNTIL TAPE IS FOUND
+// #########################################################
+void state_find_tape() {
+  /************************************************/  
 // Rotation Control
 /************************************************/
 
   if (startFlag == 1 && rotationComplete == 0){
     if(angle_to_tape == 0){
-       setMotor(PWMR, 60, INR, 0);    //call the motor function right motor based on direction needed to rotate
-       setMotor(PWML, 60, INL, 0);      //call the motor function left motor based on direction needed to rotate
+       setMotor(PWMR, 50, INR, 0);    //call the motor function right motor based on direction needed to rotate
+       setMotor(PWML, 50, INL, 0);      //call the motor function left motor based on direction needed to rotate
     }
     else if (tape_found_time == 0) {
       //Serial.println("Tape Found");
@@ -135,15 +165,109 @@ void loop() {
       if (setTarget) {
         Serial.print("Set target angle: ");
         Serial.println(angle_to_tape);
-        target_phi = 13.7;
+        target_phi = angle_to_tape;
         setTarget = false;
       }
-      state_rotate_to_tape();
+      state = STATE_ROTATE_TO_TAPE;
+      Serial.println("STATE_ROTATE_TO_TAPE");
     }
   }
+}
 
+// ###############################################################
+// STATE FUNCTION TO ROTATE UNTIL ROVER IS CENTERED TOWARDS TAPE
+// ###############################################################
+void state_rotate_to_tape() {
+  /************************************************/  
+  // PI controller configuration
+  /************************************************/
+  Kp = 35;
+  Ki = 5;
 
+  /************************************************/  
+  // Rotation Control
+  /************************************************/
+
+  if (rotationComplete == 0) {
+    current_phi = (rightCount - leftCount)*theta*wheelRadius / wheelDistance;   //calculate the current angle
+    //Serial.println(current_phi);
+
+  /************************************************/  
+  // PI Controller
+  /************************************************/
+
+   phi_e = target_phi - current_phi;              //find the error between desired and current
+   Serial.println(phi_e);
+   if(phi_e>30)
+   {
+    Ki =0;
+   }
+   else
+   {
+    Ki =5;
+   }
+   double timeChange = start_time - lastTime;     //calculate the time difference
+   errorSum += (phi_e * timeChange);              //sum the previous error
+   double u = Kp * phi_e + Ki * errorSum;         //determine the power from the PI
+   
 /************************************************/  
+// Direction determination
+/************************************************/
+
+  if (phi_e >= 0) {         //go counterclockwise
+      directionRight = 1;
+      directionLeft = 1;
+  }
+  else{                   //go clockwise
+      directionRight = 0;
+      directionLeft = 0;
+  }
+
+      
+  /************************************************/
+  //Motor Control
+  /************************************************/
+
+    rightPower = fabs(u);
+    rightPower = constrain(rightPower, 0, 60);    //constrain the power to prevent slipping on slick surfaces
+    leftPower = fabs(u);
+    leftPower = constrain(leftPower, 0, 65);      //constrain the power to prevent slipping on slick surfaces
+    
+
+    setMotor(PWMR, rightPower, INR, directionRight);    //call the motor function right motor based on direction needed to rotate
+    setMotor(PWML, leftPower, INL, directionLeft);      //call the motor function left motor based on direction needed to rotate
+
+  /************************************************/  
+  // Check to end rotation
+  /************************************************/
+      if(phi_e < 1 && phi_e > -1){
+        Serial.println("Rotation Complete");
+        movementComplete = 0;
+        rotationComplete = 1;
+
+        setMotor(PWMR, 0, INR, 1);
+        setMotor(PWML, 0, INL, 0);
+        delay(1000);
+        rightCount = 0;
+        leftCount = 0;
+        if (prev_state == STATE_FIND_TAPE) {
+          state = STATE_DRIVE_TO_TAPE;
+          Serial.println("STATE_DRIVE_TO_TAPE");
+        }
+        else {
+          state = STATE_FOLLOW_TAPE;
+          Serial.println("STATE_FOLLOW_TAPE");
+        }
+        prev_state = STATE_ROTATE_TO_TAPE;
+      }
+  }
+}
+
+// ###############################################################
+// STATE FUNCTION TO DRIVE UNTIL ROVER IS AT THE START OF TAPE
+// ###############################################################
+void state_drive_to_tape() {
+  /************************************************/  
 // Movement Control
 /************************************************/
   if(movementComplete == 0) {
@@ -194,149 +318,87 @@ void loop() {
       setMotor(PWML, 0, INL, 0);    //call the motor function
       digitalWrite(pwmPower, LOW);  //stop power to the motor
       movementComplete = 1;         
-      rotationComplete = 1;
+      rotationComplete = 0;
+      errorSum = 0;
+      totalCount = 0;
+      tape_found_time = millis();
+  }
+  else if (millis() - tape_found_time > 3000) {
+      state = STATE_ROTATE_TO_TAPE;
+      prev_state = STATE_DRIVE_TO_TAPE;
+      Serial.println("STATE_ROTATE_TO_TAPE");
   }
     
   lastTime = start_time;
 }
 
-/***********************************************/
-// State Functions
-/***********************************************/
+// ###############################################################
+// STATE FUNCTION TO FOLLOW TAPE UNTIL THE ROVER REACHES THE END
+// ###############################################################
+void state_follow_tape() {
+    /************************************************/  
+// Movement Control
+/************************************************/
+  if(movementComplete == 0) {
+    //Serial.println("Movement");
+    if (doneFlag == 0) {
+      //totalCount = (rightCount + leftCount)/2;
+      start_time = millis();
+      
+      /************************************************/  
+      // PI controller
+      /************************************************/
+//      count_error = target_counts - totalCount;   //find the error between desired and current
+//      double timeChange = start_time - lastTime;  //calculate the time difference
+//      errorSum += (count_error * timeChange);     //sum the previous error
+//      double u = Kp * count_error + Ki * errorSum;      //determine the power from the PI
+      
+      /************************************************/  
+      // Motor Control
+      /************************************************/
+      
+//      diffCount = rightCount - leftCount;
+//      if(diffCount > 0){
+//        leftPower = fabs(60) + fabs(diffCount);
+//        rightPower = fabs(60);
+//      }
+//      if(diffCount < 0){
+//        rightPower = fabs(60) + fabs(diffCount);
+//        leftPower = fabs(60);
+//      }
+//      if(diffCount == 0){
+//        rightPower = fabs(60);
+//        leftPower = fabs(60);
+//      }
+   
+//      rightPower = constrain(rightPower, 0, 95);    //constrain the power to prevent slipping on slick surfaces
+//      leftPower = constrain(leftPower, 0, 101);     //constrain the power to prevent slipping on slick surfaces
 
-void state_rotate_to_tape() {
-  /************************************************/  
-  // PI controller configuration
-  /************************************************/
-  double Kp = 35;
-  double Ki = 5;
-
-  /************************************************/  
-  // Rotation Control
-  /************************************************/
-
-  if (rotationComplete == 0) {
-    current_phi = (rightCount - leftCount)*theta*wheelRadius / wheelDistance;   //calculate the current angle
-
-  /************************************************/  
-  // PI Controller
-  /************************************************/
-
-   phi_e = target_phi - current_phi;              //find the error between desired and current
-   if(phi_e>30)
-   {
-    Ki =0;
+      setMotor(PWMR, 60, INR, 1);   //call the motor function right motor forward
+      setMotor(PWML, 60, INL, 0);    //call the motor function left motor forward
+      lastTime = start_time;
    }
-   else
-   {
-    Ki =5;
-   }
-   double timeChange = start_time - lastTime;     //calculate the time difference
-   errorSum += (phi_e * timeChange);              //sum the previous error
-   double u = Kp * phi_e + Ki * errorSum;         //determine the power from the PI
+   else {
    
 /************************************************/  
-// Direction determination
+// Turn off the motor to stop
 /************************************************/
-
-  if (phi_e >= 0) {         //go counterclockwise
-      directionRight = 1;
-      directionLeft = 1;
+      //Serial.println("Movement Complete");
+      setMotor(PWMR, 0, INR, 1);    //call the motor function
+      setMotor(PWML, 0, INL, 0);    //call the motor function
+      digitalWrite(pwmPower, LOW);  //stop power to the motor
+      movementComplete = 1;         
+      rotationComplete = 1;
+      Serial.println("Reached the end of tape");
+   }
   }
-  else{                   //go clockwise
-      directionRight = 0;
-      directionLeft = 0;
-  }
-
-      
-  /************************************************/
-  //Motor Control
-  /************************************************/
-
-    rightPower = fabs(u);
-    rightPower = constrain(rightPower, 0, 65);    //constrain the power to prevent slipping on slick surfaces
-    leftPower = fabs(u);
-    leftPower = constrain(leftPower, 0, 70);      //constrain the power to prevent slipping on slick surfaces
     
-
-    setMotor(PWMR, rightPower, INR, directionRight);    //call the motor function right motor based on direction needed to rotate
-    setMotor(PWML, leftPower, INL, directionLeft);      //call the motor function left motor based on direction needed to rotate
-
-  /************************************************/  
-  // Check to end rotation
-  /************************************************/
-      if(phi_e < 1 && phi_e > -1){
-        Serial.println("Rotation Complete");
-        movementComplete = 0;
-        rotationComplete = 1;
-
-        setMotor(PWMR, 0, INR, 1);
-        setMotor(PWML, 0, INL, 0);
-        delay(1000);
-        rightCount = 0;
-        leftCount = 0;
-      }
-  }
+  lastTime = start_time;
 }
 
-//void state_drive_to_tape() {
-//   /************************************************/  
-//  // Movement Control
-//  /************************************************/
-//    if(movementComplete == 0) {
-//      //Serial.println("Movement");
-//      while (totalCount < target_counts) {
-//        totalCount = (rightCount + leftCount)/2;
-//        start_time = millis();
-//        
-//        /************************************************/  
-//        // PI controller
-//        /************************************************/
-//        count_error = target_counts - totalCount;   //find the error between desired and current
-//        double timeChange = start_time - lastTime;  //calculate the time difference
-//        errorSum += (count_error * timeChange);     //sum the previous error
-//        double u = Kp * count_error + Ki * errorSum;      //determine the power from the PI
-//        
-//        /************************************************/  
-//        // Motor Control
-//        /************************************************/
-//        
-//        diffCount = rightCount - leftCount;
-//        if(diffCount > 0){
-//          leftPower = fabs(u + diffCount);
-//          rightPower = fabs(u);
-//        }
-//        if(diffCount < 0){
-//          rightPower = fabs(u) + fabs(diffCount);
-//          leftPower = fabs(u);
-//        }
-//        if(diffCount == 0){
-//          rightPower = fabs(u);
-//          leftPower = fabs(u);
-//        }
-//     
-//  //      rightPower = constrain(rightPower, 0, 95);    //constrain the power to prevent slipping on slick surfaces
-//  //      leftPower = constrain(leftPower, 0, 101);     //constrain the power to prevent slipping on slick surfaces
-//  
-//        setMotor(PWMR, rightPower, INR, 1);   //call the motor function right motor forward
-//        setMotor(PWML, leftPower, INL, 0);    //call the motor function left motor forward
-//        lastTime = start_time;
-//     }
-//     
-//    /************************************************/  
-//    // Turn off the motor to stop
-//    /************************************************/
-//    //Serial.println("Movement Complete");
-//    setMotor(PWMR, 0, INR, 1);    //call the motor function
-//    setMotor(PWML, 0, INL, 0);    //call the motor function
-//    digitalWrite(pwmPower, LOW);  //stop power to the motor
-//    movementComplete = 1;         
-//    rotationComplete = 1;
-//    }
-//      
-//    lastTime = start_time;
-//}
-
+// =======================================================================
+// End of State Functions
+// =======================================================================
 
 /************************************************/  
 // Motor Function
