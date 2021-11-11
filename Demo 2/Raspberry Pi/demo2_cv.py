@@ -66,10 +66,10 @@ def cam_Calibrate(width, height):
     #camera.start_preview(alpha = 100)
     #sleep(3)
     #camera.stop_preview()
-    for i in range(1,8):
+    for i in range(1,4):
         rawCapture = PiRGBArray(camera)
         camera.capture(rawCapture, format="bgr")
-        image = rawCapture.array
+        #image = rawCapture.array
     
     start_str = "s1"
     sendSerial(start_str)
@@ -122,7 +122,7 @@ def color_Mask(output):
     #upper_Yellow = np.array([30,255,255])
     
     #Define range of blue color in HSV (save for later project)
-    lower_blue = np.array([100,50,20])
+    lower_blue = np.array([100,100,20])
     upper_blue = np.array([135,255,255])
     
     #Define range of orange color in HSV (save for later project)
@@ -158,9 +158,9 @@ def color_Mask(output):
 def morph_Pic(res):
     
     kernel = np.ones((5,5), np.uint8)
-    #closing = cv2.morphologyEx(res, cv2.MORPH_CLOSE, kernel)
+    closing = cv2.morphologyEx(res, cv2.MORPH_CLOSE, kernel, iterations = 2)
     # use opening since it is the most useful for this project
-    opening = cv2.morphologyEx(res, cv2.MORPH_OPEN, kernel, iterations = 2)
+    opening = cv2.morphologyEx(closing, cv2.MORPH_OPEN, kernel, iterations = 2)
     #erode = cv2.erode(res, kernel, iterations = 3)
     #path = '/home/pi/Desktop'
     #cv2.imwrite(os.path.join(path, 'morph.jpg'), opening)
@@ -184,34 +184,60 @@ def calc_AngleX(res):
     
     #print(np.mean(a0, axis=1))
     if len(a0[0]) and len(a0[1]):
-           global found_tape
-           found_tape = True
+           #print("Lowest Pixel ")
+           #print(max(a0[0])) #1033 pixels and 13" in distance
+           #print("\n")
+           #global found_tape
+           #found_tape = True
            #aMeanY, aMeanX, aMeanZ = np.nanmean(a0, axis=1, axis=0)
            aMeanY, aMeanX, aMeanZ = np.nanmean(a0, axis=1)
            #grab image width, divide by 2 to find center pixel, solve for degree per pixel
            #take object position (xaxis) and sub center pixel to find offset
            #multiple pixel offset by degrees per pixel to ifnd total degree off center
-           width = res.shape[1]
-           length = res.shape[0]
-           centerX = width/2
-           centerY = length/2
-           degPerPixel_X = fov_adj/width
-           pixelDelta = centerX-80 - aMeanX  #Adjust center point to match camera position by subtracting 80 from center
-           angleDelta = pixelDelta * degPerPixel_X
-            
-           print('Object coordinates are: x ', aMeanX, 'and y ', aMeanY, '.\n')
-           #print('Object is ', angleDelta, 'degrees from center.\n')
-           
-           message="Angle = {:.2f}".format(angleDelta)
+           if max(a0[0]) > 400:
+               #print('Object found')
+               global found_tape
+               found_tape = True
+               width = res.shape[1]
+               length = res.shape[0]
+               centerX = width/2
+               centerY = length/2
+               degPerPixel_X = fov_adj/width
+               pixelDelta = centerX-80 - aMeanX  #Adjust center point to match camera position by subtracting 80 from center
+               angleDelta = pixelDelta * degPerPixel_X
+                
+               #print('Object coordinates are: x ', aMeanX, 'and y ', aMeanY, '.\n')
+               print('Object is ', angleDelta, 'degrees from center.\n')
                
-           print(message)
-           lcd.clear()
-           lcd.message = message
-           
-           #sendSerial(angleDelta, doneFlag)
-           angle_serial = "a" + str(angleDelta)
-           sendSerial(angle_serial)
-           
+               #message="Angle = {:.2f}".format(angleDelta)            
+                   
+               #print(message)
+               #lcd.clear()
+               #lcd.message = message
+               
+#               blueY = a0[0][0]
+#               X_index = 0;
+#               for i in range(1,len(a0[0])):
+#                   item = a0[0][i]
+#                   if (item > blueY):
+#                       X_index = i
+#                       blueY = item
+#               blueX = a0[1][X_index]
+#               #print("BlueX " + str(blueX) + " BlueY " + str(blueY) + "\n")
+#               #print("MeanX " + str(aMeanX) + " MeanY " + str(aMeanY) + "\n")
+#               #print(a0[0])
+#               for i in range(1,len(a0[0])):
+#                   if (a0[0])
+               #sendSerial(angleDelta, doneFlag)
+               angle_serial = "a" + str(angleDelta)
+               sendSerial(angle_serial)
+               
+               if max(a0[0]) > 1000:
+                   # If blue at bottom of screen
+                   msg_serial = "f1"
+                   sendSerial(msg_serial)
+                   
+        
     else:
            print('No marker found and do nothing.\n')
            msg_serial = "f1"
