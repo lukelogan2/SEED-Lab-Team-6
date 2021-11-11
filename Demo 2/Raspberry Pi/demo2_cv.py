@@ -23,7 +23,7 @@ found_tape = False # Flag if the rover has found tape
 
 # Initialize serial communiction
 try:
-    ser = serial.Serial('/dev/ttyACM0', baudrate=115200, write_timeout=2)
+    ser = serial.Serial('/dev/ttyACM1', baudrate=115200, write_timeout=2)
     time.sleep(3)
 except:
     lcd.message="Serial Failed"
@@ -45,6 +45,7 @@ def ReadfromArduino():
 def sendSerial(message):
     try:
         ser.write(message.encode())
+        print("Writing " + message)
     except:
         print("Serial Message Failed to Send")
 
@@ -184,6 +185,7 @@ def calc_AngleX(res):
     
     #print(np.mean(a0, axis=1))
     if len(a0[0]) and len(a0[1]):
+           #print("Length of array " + str(len(a0[0])))
            #print("Lowest Pixel ")
            #print(max(a0[0])) #1033 pixels and 13" in distance
            #print("\n")
@@ -194,7 +196,7 @@ def calc_AngleX(res):
            #grab image width, divide by 2 to find center pixel, solve for degree per pixel
            #take object position (xaxis) and sub center pixel to find offset
            #multiple pixel offset by degrees per pixel to ifnd total degree off center
-           if max(a0[0]) > 400:
+           if max(a0[0]) > 400 and len(a0[0]) > 5000:
                #print('Object found')
                global found_tape
                found_tape = True
@@ -229,14 +231,19 @@ def calc_AngleX(res):
 #               for i in range(1,len(a0[0])):
 #                   if (a0[0])
                #sendSerial(angleDelta, doneFlag)
-               angle_serial = "a" + str(angleDelta)
-               sendSerial(angle_serial)
                
                if max(a0[0]) > 1000:
                    # If blue at bottom of screen
-                   msg_serial = "f1"
+                   #print("Reached Tape")
+                   msg_serial = "r1"
                    sendSerial(msg_serial)
-                   
+               else:
+                   angle_serial = "a" + str(angleDelta)
+                   sendSerial(angle_serial)
+                    
+           else:
+               msg_serial = "f1"
+               sendSerial(msg_serial)
         
     else:
            print('No marker found and do nothing.\n')
