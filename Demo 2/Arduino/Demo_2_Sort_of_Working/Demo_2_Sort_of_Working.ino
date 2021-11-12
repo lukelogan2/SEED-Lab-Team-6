@@ -52,6 +52,7 @@ double target_rho = 0.1;    //meters
 double target_phi = 0;   //Degrees
 
 double step_phi = 30;   //degrees
+int step_count = 0;
 
 int directionRight;
 int directionLeft;
@@ -189,6 +190,7 @@ void loop() {
 //      target_phi = angle_to_tape;
       state = STATE_WAIT;
       doneFlag = 0;
+      errorSum = 0;
    }
    if(angle_to_tape == 0){
      stepRotation();
@@ -197,6 +199,7 @@ void loop() {
     stepFlag = 1;
     rightCount = 0;
     leftCount = 0;
+    errorSum = 0;
    }
   
 }
@@ -291,7 +294,13 @@ void state_drive_to_tape() {
      stepFlag = 0;
     }
     if(reachedFlag == 1){
+        rightCount = 0;
+        leftCount = 0;
+        doneFlag = 0;
+        movementComplete = 0;
+        count_error = 0;
         stepMovement();
+        
         prev_state = STATE_DRIVE_TO_TAPE;
         state = STATE_WAIT;
         delay(10000);
@@ -305,6 +314,9 @@ void state_drive_to_tape() {
        stepMovement();
      }
     if(millis() - step_time > 5000){
+      if (step_count >= 2) {
+        state = STATE_WAIT;
+      }
       stepFlag = 1;
       rightCount = 0;
       leftCount = 0;
@@ -323,7 +335,7 @@ void state_follow_tape() {
     }
     if(doneFlag == 1){
         //Serial.println("STATE_ROTATE_TO_TAPE");
-        stepMovement();
+        prev_state = STATE_FOLLOW_TAPE;
         state = STATE_DONE;
         rightCount = 0;
         leftCount = 0;
@@ -336,6 +348,9 @@ void state_follow_tape() {
        stepMovement();
      }
     if(millis() - step_time > 5000){
+      if (step_count >= 2) {
+        state = STATE_WAIT;
+      }
       stepFlag = 1;
       rightCount = 0;
       leftCount = 0;
@@ -345,16 +360,25 @@ void state_follow_tape() {
 }
 
 void state_done(){
-  setMotor(PWMR, 0, INR, 1);    //call the motor function
+      setMotor(PWMR, 0, INR, 1);    //call the motor function
       setMotor(PWML, 0, INL, 0);    //call the motor function
       digitalWrite(pwmPower, LOW);  //stop power to the motor
+      if (prev_state == STATE_FOLLOW_TAPE) {
+        rightCount = 0;
+        leftCount = 0;
+        doneFlag = 0;
+        movementComplete = 0;
+        count_error = 0;
+        stepMovement();
+      }
 }
 
 void state_wait(){
-    delay(5000);
+    delay(3000);
+    step_count = 0;
     target_phi = angle_to_tape;
     state = STATE_ROTATE_TO_TAPE;
-    Serial.println(target_phi);
+    //Serial.println(target_phi);
 
   
 //  if( waitFlag = 1){
@@ -382,8 +406,8 @@ void state_wait(){
 
 
 void stepRotation(){
-  Kp = 35;
-  Ki = 0;
+  Kp = 25;
+  Ki = 5;
 
   /************************************************/  
   // Rotation Control
@@ -480,6 +504,7 @@ void stepMovement() {
       digitalWrite(pwmPower, LOW);  //stop power to the motor
       movementComplete = 1;         
       rotationComplete = 1;
+      step_count++;
   }
     
 last_time = start_time;
