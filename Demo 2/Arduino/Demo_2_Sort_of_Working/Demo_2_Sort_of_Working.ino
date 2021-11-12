@@ -266,19 +266,19 @@ void state_rotate_to_tape() {
         doneFlag = 0;
         totalCount = 0;
         movementComplete = 0;
-        state = STATE_DRIVE_TO_TAPE;
+        //state = STATE_DRIVE_TO_TAPE;
         ///Serial.println("STATE_DRIVE_TO_TAPE");
-//        if (prev_state == STATE_FIND_TAPE) {
-//          state = STATE_DRIVE_TO_TAPE;
-//        }
-//        else {
-//          doneFlag = 0;
-//          setMotor(PWMR, 0, INR, 1);
-//          setMotor(PWML, 0, INL, 0);
-//          state = STATE_DONE;
-////          Serial.println("STATE_FOLLOW_TAPE");
-//        }
-//        prev_state = STATE_ROTATE_TO_TAPE;
+        if (prev_state == STATE_FIND_TAPE) {
+          state = STATE_DRIVE_TO_TAPE;
+        }
+        else {
+          doneFlag = 0;
+          setMotor(PWMR, 0, INR, 1);
+          setMotor(PWML, 0, INL, 0);
+          state = STATE_FOLLOW_TAPE;
+//          Serial.println("STATE_FOLLOW_TAPE");
+        }
+        prev_state = STATE_ROTATE_TO_TAPE;
       }
 }
 
@@ -291,7 +291,10 @@ void state_drive_to_tape() {
      stepFlag = 0;
     }
     if(reachedFlag == 1){
-        state = STATE_DONE;
+        stepMovement();
+        prev_state = STATE_DRIVE_TO_TAPE;
+        state = STATE_WAIT;
+        delay(10000);
         rightCount = 0;
         leftCount = 0;
         doneFlag = 0;
@@ -320,6 +323,7 @@ void state_follow_tape() {
     }
     if(doneFlag == 1){
         //Serial.println("STATE_ROTATE_TO_TAPE");
+        stepMovement();
         state = STATE_DONE;
         rightCount = 0;
         leftCount = 0;
@@ -350,7 +354,7 @@ void state_wait(){
     delay(5000);
     target_phi = angle_to_tape;
     state = STATE_ROTATE_TO_TAPE;
-
+    Serial.println(target_phi);
 
   
 //  if( waitFlag = 1){

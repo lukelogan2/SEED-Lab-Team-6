@@ -188,7 +188,7 @@ void loop() {
       //Serial.println("STATE_ROTATE_TO_TAPE");
       delay(3000);
       target_phi = angle_to_tape;
-      state = STATE_ROTATE_TO_TAPE;
+      state = STATE_DRIVE_TO_TAPE;
       rightCount = 0;
       leftCount = 0;
       doneFlag = 0;

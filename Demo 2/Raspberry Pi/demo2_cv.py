@@ -19,11 +19,11 @@ lcd_columns = 16
 lcd_rows = 2
 lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)        
 
-found_tape = False # Flag if the rover has found tape
+reached_tape = False # Flag if the rover has found tape
 
 # Initialize serial communiction
 try:
-    ser = serial.Serial('/dev/ttyACM1', baudrate=115200, write_timeout=2)
+    ser = serial.Serial('/dev/ttyACM0', baudrate=115200, write_timeout=2)
     time.sleep(3)
 except:
     lcd.message="Serial Failed"
@@ -231,16 +231,20 @@ def calc_AngleX(res):
 #               for i in range(1,len(a0[0])):
 #                   if (a0[0])
                #sendSerial(angleDelta, doneFlag)
-               
-               if max(a0[0]) > 1000:
+               global reached_tape
+               if max(a0[0]) > 1050 and reached_tape == False:
+                   reached_tape = True
                    # If blue at bottom of screen
                    #print("Reached Tape")
                    msg_serial = "r1"
                    sendSerial(msg_serial)
+               #elif reached_tape == True:
+                   #angle_serial = "a" + str(angleDelta)
+                   #angle_serial = "a" + str(angleDelta)
+                   #sendSerial(angle_serial)
                else:
                    angle_serial = "a" + str(angleDelta)
                    sendSerial(angle_serial)
-                    
            else:
                msg_serial = "f1"
                sendSerial(msg_serial)
