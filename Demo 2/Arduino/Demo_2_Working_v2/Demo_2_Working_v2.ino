@@ -195,7 +195,7 @@ void loop() {
    if(angle_to_tape == 0){
      stepRotation();
    }
-  if(millis() - step_time > 4000){
+  if(millis() - step_time > 5000){
     stepFlag = 1;
     rightCount = 0;
     leftCount = 0;
@@ -299,13 +299,21 @@ void state_drive_to_tape() {
         doneFlag = 0;
         movementComplete = 0;
         count_error = 0;
+        stepMovement();
+        
         prev_state = STATE_DRIVE_TO_TAPE;
         state = STATE_WAIT;
+        delay(10000);
+        rightCount = 0;
+        leftCount = 0;
+        doneFlag = 0;
+        movementComplete = 0;
+        count_error = 0;
      }
      if(reachedFlag == 0){
        stepMovement();
      }
-    if(millis() - step_time > 3000){
+    if(millis() - step_time > 5000){
       if (step_count >= 2) {
         state = STATE_WAIT;
       }
@@ -339,7 +347,7 @@ void state_follow_tape() {
        //Serial.println("Step Movement");
        stepMovement();
      }
-    if(millis() - step_time > 3000){
+    if(millis() - step_time > 5000){
       if (step_count >= 2) {
         state = STATE_WAIT;
       }
@@ -355,24 +363,21 @@ void state_done(){
       setMotor(PWMR, 0, INR, 1);    //call the motor function
       setMotor(PWML, 0, INL, 0);    //call the motor function
       digitalWrite(pwmPower, LOW);  //stop power to the motor
-//      if (prev_state == STATE_FOLLOW_TAPE) {
-//        rightCount = 0;
-//        leftCount = 0;
-//        doneFlag = 0;
-//        movementComplete = 0;
-//        count_error = 0;
-//        stepMovement();
-//      }
+      if (prev_state == STATE_FOLLOW_TAPE) {
+        rightCount = 0;
+        leftCount = 0;
+        doneFlag = 0;
+        movementComplete = 0;
+        count_error = 0;
+        stepMovement();
+      }
 }
 
 void state_wait(){
-    delay(2000);
+    delay(3000);
     step_count = 0;
     target_phi = angle_to_tape;
     state = STATE_ROTATE_TO_TAPE;
-    if (prev_state == STATE_DRIVE_TO_TAPE && doneFlag == 1) {
-      state = STATE_DONE;
-    }
     //Serial.println(target_phi);
 
   
@@ -407,7 +412,7 @@ void stepRotation(){
   /************************************************/  
   // Rotation Control
   /************************************************/
-    
+
     current_phi = (rightCount - leftCount)*theta*wheelRadius / wheelDistance;   //calculate the current angle
     //Serial.println(current_phi);
 
@@ -447,16 +452,17 @@ void stepRotation(){
     setMotor(PWMR, rightPower, INR, directionRight);    //call the motor function right motor based on direction needed to rotate
     setMotor(PWML, leftPower, INL, directionLeft);      //call the motor function left motor based on direction needed to rotate
 
-    last_time = start_time;
   /************************************************/  
   // Check to end rotation
   /************************************************/
       if(phi_e < 5 && phi_e > -5){
         setMotor(PWMR, 0, INR, 1);
         setMotor(PWML, 0, INL, 0);
-//        rightCount = 0;
-//        leftCount = 0;
-}
+        errorSum = 0;
+        rightCount = 0;
+        leftCount = 0;
+        delay(1000);
+    }
 }
 
 void stepMovement() {

@@ -181,27 +181,44 @@ void loop() {
 
 
  void state_find_tape(){
-  if(stepFlag == 1){
-     step_time = millis();
-     stepFlag = 0;
-  }
-  if(angle_to_tape != 0){
-      //Serial.println("STATE_ROTATE_TO_TAPE");
-//      target_phi = angle_to_tape;
+//  if(stepFlag == 1){
+//     step_time = millis();
+//     stepFlag = 0;
+//  }
+//  if(angle_to_tape != 0){
+//      //Serial.println("STATE_ROTATE_TO_TAPE");
+////      target_phi = angle_to_tape;
+//      state = STATE_WAIT;
+//      doneFlag = 0;
+//      errorSum = 0;
+//   }
+//   if(angle_to_tape == 0){
+//     stepRotation();
+//   }
+//  if(millis() - step_time > 4000){
+//    stepFlag = 1;
+//    rightCount = 0;
+//    leftCount = 0;
+//    errorSum = 0;
+//   }
+    if (angle_to_tape != 0) {
+      target_phi = angle_to_tape;
       state = STATE_WAIT;
       doneFlag = 0;
       errorSum = 0;
-   }
-   if(angle_to_tape == 0){
-     stepRotation();
-   }
-  if(millis() - step_time > 4000){
-    stepFlag = 1;
-    rightCount = 0;
-    leftCount = 0;
-    errorSum = 0;
-   }
-  
+    }
+    else if (angle_to_tape == 0) {
+      if (rotationComplete == 0) {
+        stepRotation();
+      }
+      else {
+        delay(2000);
+        rightCount = 0;
+        leftCount = 0;
+        errorSum = 0;
+        rotationComplete = 0;
+      }
+    }
 }
 // ###############################################################
 // STATE FUNCTION TO ROTATE UNTIL ROVER IS CENTERED TOWARDS TAPE
@@ -300,7 +317,7 @@ void state_drive_to_tape() {
         movementComplete = 0;
         count_error = 0;
         prev_state = STATE_DRIVE_TO_TAPE;
-        state = STATE_WAIT;
+        state = STATE_DONE;
      }
      if(reachedFlag == 0){
        stepMovement();
@@ -366,7 +383,7 @@ void state_done(){
 }
 
 void state_wait(){
-    delay(2000);
+    delay(3000);
     step_count = 0;
     target_phi = angle_to_tape;
     state = STATE_ROTATE_TO_TAPE;
@@ -454,6 +471,7 @@ void stepRotation(){
       if(phi_e < 5 && phi_e > -5){
         setMotor(PWMR, 0, INR, 1);
         setMotor(PWML, 0, INL, 0);
+        rotationComplete = 1;
 //        rightCount = 0;
 //        leftCount = 0;
 }

@@ -196,7 +196,7 @@ def calc_AngleX(res):
            #grab image width, divide by 2 to find center pixel, solve for degree per pixel
            #take object position (xaxis) and sub center pixel to find offset
            #multiple pixel offset by degrees per pixel to ifnd total degree off center
-           if max(a0[0]) > 400 and len(a0[0]) > 5000:
+           if max(a0[0]) > 400 and len(a0[0]) > 4000:
                #print('Object found')
                global found_tape
                found_tape = True
