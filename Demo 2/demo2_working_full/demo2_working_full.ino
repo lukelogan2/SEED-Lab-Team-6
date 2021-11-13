@@ -51,7 +51,7 @@ double current_phi = 0;
 double target_rho = 0.1;    //meters
 double target_phi = 0;   //Degrees
 
-double step_phi = 30;   //degrees
+double step_phi = 20;   //degrees
 int step_count = 0;
 
 int directionRight;
@@ -63,6 +63,7 @@ double wait_time = 0;
 int waitFlag = 1;
 int stepFlag = 1;
 double step_time;
+double delay_time = 0;
 
 double count_error = 0; //count sum for movement
 double errorSum = 0;    //error sum for integral controller
@@ -211,8 +212,8 @@ void loop() {
       if (rotationComplete == 0) {
         stepRotation();
       }
-      else {
-        delay(2000);
+      else if ((millis() - delay_time) > 4000) {
+        delay_time = 0;
         rightCount = 0;
         leftCount = 0;
         errorSum = 0;
@@ -286,6 +287,7 @@ void state_rotate_to_tape() {
         doneFlag = 0;
         totalCount = 0;
         movementComplete = 0;
+        delay_time = 0;
         //state = STATE_DRIVE_TO_TAPE;
         ///Serial.println("STATE_DRIVE_TO_TAPE");
         if (prev_state == STATE_FIND_TAPE) {
@@ -322,7 +324,7 @@ void state_drive_to_tape() {
      if(reachedFlag == 0){
        stepMovement();
      }
-    if(millis() - step_time > 3000){
+    if(millis() - step_time > 1000){
       if (step_count >= 2) {
         state = STATE_WAIT;
       }
@@ -344,13 +346,13 @@ void state_follow_tape() {
     }
     if(doneFlag == 1){
         //Serial.println("STATE_ROTATE_TO_TAPE");
-        prev_state = STATE_FOLLOW_TAPE;
-        state = STATE_DONE;
         rightCount = 0;
         leftCount = 0;
         doneFlag = 0;
         movementComplete = 0;
         count_error = 0;
+        prev_state = STATE_FOLLOW_TAPE;
+        state = STATE_DONE;
      }
      if(doneFlag == 0){
        //Serial.println("Step Movement");
@@ -383,12 +385,14 @@ void state_done(){
 }
 
 void state_wait(){
-    delay(3000);
-    step_count = 0;
-    target_phi = angle_to_tape;
-    state = STATE_ROTATE_TO_TAPE;
-    if (prev_state == STATE_DRIVE_TO_TAPE && doneFlag == 1) {
-      state = STATE_DONE;
+    if (delay_time == 0) {
+      delay_time = millis();
+    }
+    else if ((millis() - delay_time) > 2000) {
+      delay_time = 0;
+      step_count = 0;
+      target_phi = angle_to_tape;
+      state = STATE_ROTATE_TO_TAPE;
     }
     //Serial.println(target_phi);
 
@@ -472,9 +476,10 @@ void stepRotation(){
         setMotor(PWMR, 0, INR, 1);
         setMotor(PWML, 0, INL, 0);
         rotationComplete = 1;
+        delay_time = millis();
 //        rightCount = 0;
 //        leftCount = 0;
-}
+  }
 }
 
 void stepMovement() {
