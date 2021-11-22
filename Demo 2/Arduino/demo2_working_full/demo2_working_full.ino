@@ -51,7 +51,7 @@ double current_phi = 0;
 double target_rho = 0.1;    //meters
 double target_phi = 0;   //Degrees
 
-double step_phi = 20;   //degrees
+double step_phi = -20;   //degrees
 int step_count = 0;
 
 int directionRight;
