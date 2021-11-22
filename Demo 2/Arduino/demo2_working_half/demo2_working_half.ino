@@ -123,10 +123,7 @@ void loop() {
   Kp = 35;
   Ki = 5;
 
-//  Serial.print("R ");
-//  Serial.print(rightCount);
-//  Serial.print("  L ");
-//  Serial.println(leftCount);
+
   // --------------------------------------
   // State Machine Conditional Statements
   // --------------------------------------
@@ -159,49 +156,7 @@ void loop() {
 // #########################################################
 // STATE FUNCTION TO ROTATE UNTIL TAPE IS FOUND
 // #########################################################
-//void state_find_tape() {
-//  /************************************************/  
-//// Rotation Control
-///************************************************/
-//
-//    if(angle_to_tape == 0){
-//       setMotor(PWMR, 55, INR, 0);    //call the motor function right motor based on direction needed to rotate
-//       setMotor(PWML, 50, INL, 0);      //call the motor function left motor based on direction needed to rotate
-//    }
-//    else{
-//      state = STATE_ROTATE_TO_TAPE;
-//      rightCount = 0;
-//      leftCount = 0;
-////      tape_found_time = millis();
-//    }
-////    if (millis()-tape_found_time > 3000) {
-////        target_phi = angle_to_tape;
-////        state = STATE_DONE;
-////      }
-//    }
-
-
  void state_find_tape(){
-//  if(stepFlag == 1){
-//     step_time = millis();
-//     stepFlag = 0;
-//  }
-//  if(angle_to_tape != 0){
-//      //Serial.println("STATE_ROTATE_TO_TAPE");
-////      target_phi = angle_to_tape;
-//      state = STATE_WAIT;
-//      doneFlag = 0;
-//      errorSum = 0;
-//   }
-//   if(angle_to_tape == 0){
-//     stepRotation();
-//   }
-//  if(millis() - step_time > 4000){
-//    stepFlag = 1;
-//    rightCount = 0;
-//    leftCount = 0;
-//    errorSum = 0;
-//   }
     if (angle_to_tape != 0) {
       target_phi = angle_to_tape;
       state = STATE_WAIT;
@@ -288,8 +243,7 @@ void state_rotate_to_tape() {
         totalCount = 0;
         movementComplete = 0;
         delay_time = 0;
-        //state = STATE_DRIVE_TO_TAPE;
-        ///Serial.println("STATE_DRIVE_TO_TAPE");
+        
         if (prev_state == STATE_FIND_TAPE) {
           state = STATE_DRIVE_TO_TAPE;
         }
@@ -298,7 +252,7 @@ void state_rotate_to_tape() {
           setMotor(PWMR, 0, INR, 1);
           setMotor(PWML, 0, INL, 0);
           state = STATE_FOLLOW_TAPE;
-//          Serial.println("STATE_FOLLOW_TAPE");
+
         }
       }
 }
@@ -344,7 +298,6 @@ void state_follow_tape() {
      stepFlag = 0;
     }
     if(doneFlag == 1){
-        //Serial.println("STATE_ROTATE_TO_TAPE");
         rightCount = 0;
         leftCount = 0;
         doneFlag = 0;
@@ -369,20 +322,18 @@ void state_follow_tape() {
      }
 }
 
+// ###############################################################
+// COMPLETED THE TASK AND DO NOTHING
+// ###############################################################
 void state_done(){
       setMotor(PWMR, 0, INR, 1);    //call the motor function
       setMotor(PWML, 0, INL, 0);    //call the motor function
       digitalWrite(pwmPower, LOW);  //stop power to the motor
-//      if (prev_state == STATE_FOLLOW_TAPE) {
-//        rightCount = 0;
-//        leftCount = 0;
-//        doneFlag = 0;
-//        movementComplete = 0;
-//        count_error = 0;
-//        stepMovement();
-//      }
 }
 
+// ###############################################################
+// INBETWEEN FUNCTION TO CAPTURE GOOD IMAGES
+// ###############################################################
 void state_wait(){
     if (delay_time == 0) {
       delay_time = millis();
@@ -393,25 +344,6 @@ void state_wait(){
       target_phi = angle_to_tape;
       state = STATE_ROTATE_TO_TAPE;
     }
-    //Serial.println(target_phi);
-
-  
-//  if( waitFlag = 1){
-//    wait_time = millis();
-//    waitFlag = 0;
-//  }
-//  if ((millis() - wait_time) < 10000){
-//    setMotor(PWMR, 0, INR, 1);    //call the motor function
-//    setMotor(PWML, 0, INL, 0);    //call the motor function
-//    target_phi = angle_to_tape;
-//  }
-//  else{
-//    waitFlag = 1;
-//    rightCount = 0;
-//    digitalWrite(13,HIGH);
-//    leftCount = 0;
-//    state = STATE_ROTATE_TO_TAPE;
-//  }
 }
 
 // =======================================================================
@@ -419,7 +351,9 @@ void state_wait(){
 // =======================================================================
 
 
-
+// ----------------------------------------------------------------------
+// Function to rotate a predetermined degrees 
+// ----------------------------------------------------------------------
 void stepRotation(){
   Kp = 25;
   Ki = 5;
@@ -476,15 +410,16 @@ void stepRotation(){
         setMotor(PWML, 0, INL, 0);
         rotationComplete = 1;
         delay_time = millis();
-//        rightCount = 0;
-//        leftCount = 0;
   }
 }
 
+// ----------------------------------------------------------------------
+// Function to Drive forwards a predetermined distance
+// ----------------------------------------------------------------------
 void stepMovement() {
   Kp = 35;
   Ki = 5;
-  /************************************************/  
+/************************************************/  
 // Movement Control
 /************************************************/
   if(movementComplete == 0){
@@ -540,6 +475,10 @@ void setMotor (int pwm, int pwmVal, int inval, int dir){
   }
 }
 
+
+// ----------------------------------------------------------------------
+// Interrupt handler for the right wheel encoder
+// ----------------------------------------------------------------------
 void rightRotation() {
    rightEncoderCurrent = digitalRead(RENCA);
 
@@ -552,6 +491,10 @@ void rightRotation() {
    moved = 1;
 }
 
+
+// ----------------------------------------------------------------------
+// Interrupt handler for the left wheel encoder 
+// ----------------------------------------------------------------------
 void leftRotation() {
   leftEncoderCurrent = digitalRead(LENCA);
 
