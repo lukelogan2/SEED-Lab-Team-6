@@ -19,7 +19,7 @@ lcd_columns = 16
 lcd_rows = 2
 lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)        
 
-reached_tape = False # Flag if the rover has found tape
+corners = 0 # Variable to keep track of the number of corners
 
 # Initialize serial communiction
 try:
@@ -72,8 +72,6 @@ def cam_Calibrate(width, height):
         camera.capture(rawCapture, format="bgr")
         #image = rawCapture.array
     
-    start_str = "s1"
-    sendSerial(start_str)
     
     return camera
     
@@ -182,24 +180,15 @@ def calc_AngleX(res):
     fov_adj = 62      #field of view of camera adjusting for 3 inch offset from center of rotation
     a = np.array(res)
     a0 = np.nonzero(a)
-    
+    global corners
     #print(np.mean(a0, axis=1))
     if len(a0[0]) and len(a0[1]):
-           #print("Length of array " + str(len(a0[0])))
-           #print("Lowest Pixel ")
-           #print(max(a0[0])) #1033 pixels and 13" in distance
-           #print("\n")
-           #global found_tape
-           #found_tape = True
            #aMeanY, aMeanX, aMeanZ = np.nanmean(a0, axis=1, axis=0)
            aMeanY, aMeanX, aMeanZ = np.nanmean(a0, axis=1)
            #grab image width, divide by 2 to find center pixel, solve for degree per pixel
            #take object position (xaxis) and sub center pixel to find offset
            #multiple pixel offset by degrees per pixel to ifnd total degree off center
-           if max(a0[0]) > 400 and len(a0[0]) > 4000:
-               #print('Object found')
-               global found_tape
-               found_tape = True
+           if max(a0[0]) > 800 and len(a0[0]) > 4000:
                width = res.shape[1]
                length = res.shape[0]
                centerX = width/2
@@ -207,97 +196,90 @@ def calc_AngleX(res):
                degPerPixel_X = fov_adj/width
                pixelDelta = centerX-80 - aMeanX  #Adjust center point to match camera position by subtracting 80 from center
                angleDelta = pixelDelta * degPerPixel_X
-                
-               #print('Object coordinates are: x ', aMeanX, 'and y ', aMeanY, '.\n')
-               print('Object is ', angleDelta, 'degrees from center.\n')
                
-               #message="Angle = {:.2f}".format(angleDelta)            
-                   
-               #print(message)
-               #lcd.clear()
-               #lcd.message = message
-               
-#               blueY = a0[0][0]
-#               X_index = 0;
-#               for i in range(1,len(a0[0])):
-#                   item = a0[0][i]
-#                   if (item > blueY):
-#                       X_index = i
-#                       blueY = item
-#               blueX = a0[1][X_index]
-#               #print("BlueX " + str(blueX) + " BlueY " + str(blueY) + "\n")
-#               #print("MeanX " + str(aMeanX) + " MeanY " + str(aMeanY) + "\n")
-#               #print(a0[0])
-#               for i in range(1,len(a0[0])):
-#                   if (a0[0])
-               #sendSerial(angleDelta, doneFlag)
-               global reached_tape
-               if max(a0[0]) > 1050 and reached_tape == False:
-                   reached_tape = True
-                   # If blue at bottom of screen
-                   #print("Reached Tape")
-                   msg_serial = "r1"
-                   sendSerial(msg_serial)
-               #elif reached_tape == True:
-                   #angle_serial = "a" + str(angleDelta)
-                   #angle_serial = "a" + str(angleDelta)
-                   #sendSerial(angle_serial)
-               else:
-                   angle_serial = "a" + str(angleDelta)
-                   sendSerial(angle_serial)
+               # If the angle is greater than 5 degrees, rotate to correct
+               if angleDelta and abs(angleDelta) > 5:
+                   # Message format = angle,distance
+                   message = str(angleDelta) + ",0"
+                   sendSerial(message)
+               # If the angle is less than 5 degrees, keep driving straight
+               elif angleDelta:
+                   #Message format = angle,distance
+                   message = "0,0.1"
+                   sendSerial(message)
+               return 0
            else:
-               msg_serial = "f1"
-               sendSerial(msg_serial)
-        
+               # No tape seen rotate 90 degrees
+               #Message format = angle,distance
+               message = "-90,0"
+               sendSerial(message)
+               corners += 1
+               return 1
+           
+    else: 
+           # No tape seen rotate 90 degrees
+           #Message format = angle,distance
+           message = "-90,0"
+           sendSerial(message)
+           corners += 1
+           return 1
+
+def get_image():
+    src = take_Pic(camera)
+    morphed = morph_Pic(src)
+    res = color_Mask(morphed)
+    return res
+
+########################################################
+# STATE MACHINE IMPLEMENTATION
+########################################################
+
+def state1():
+    #print("state 1")
+    # Follow the curve and the 1st corner
+    res = get_image()
+    newstate = calc_AngleX(res)
+    if newstate and corners == 3:
+        return state2
     else:
-           print('No marker found and do nothing.\n')
-           msg_serial = "f1"
-           sendSerial(msg_serial)
-            
-            
+        return state1
 
-########################################################
-# Take Pictures Continously and Determine Object Location from Camera
-########################################################
-#Initialize camera
-#camera = PiCamera()
+def state2():
+    print("state 2")
+    # Navigate the gap to arrive at the end
+    #Message format = angle,distance
+    message = "0,0.35"
+    sendSerial(message)
+    return state_done
 
+def state_done():
+    pass
 
+# State Dictionary
+state_dict = {
+    state1 : "state1",
+    state2: "state2",
+    state_done: "state_done"
+}
+
+# Initialization
+state = state1
+finished = False
 
 width = 1920
 height = 1088
 
 camera = cam_Calibrate(width, height)
 
-#Loop to do continous obect location calculations
-while True:
-    #i = input("Enter text to quit or press Enter to continue: ")
-    #if not i:
-        
-    #Store gray-scale image array as a variable 
-    src = take_Pic(camera)
+# Loop through all characters in string
+while not finished:
+    # Call state function with pointer
+    if state != state_done:
+        new_state = state()
+        state = new_state
+    else:
+        finished = True
     
-    #Store image array in a new variable
-    #src = image
-    
-    #Call resize image function and store as a new variable
-    #output = resize_Pic(src)
-    
-    #Call Morphological Transform function to enhance picture
-    morphed = morph_Pic(src)
-    
-    #Call show canny edge function
-    #show_Edge(output)
-    
-    #Call color mask function and store as new variale
-    res = color_Mask(morphed)
-    
-    #Call function to determine object location and angle from camera focal point
-    calc_AngleX(res)
-    
-    #else:
-        #Disable camera
-        #camera.close()
-        #break
+print("Done with state machine")
 
 
