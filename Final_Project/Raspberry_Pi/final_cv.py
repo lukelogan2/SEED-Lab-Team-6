@@ -209,7 +209,10 @@ def calc_AngleX(res):
                    sendSerial(message)
                return 0
            else:
-               # No tape seen rotate 90 degrees
+               # No tape seen, move forward and rotate 90 degrees
+               message = "0,0.2"
+               sendSerial(message)
+               sleep(3)
                #Message format = angle,distance
                message = "-90,0"
                sendSerial(message)
@@ -217,7 +220,11 @@ def calc_AngleX(res):
                return 1
            
     else: 
-           # No tape seen rotate 90 degrees
+           # No tape seen, move forward and rotate 90 degrees
+           #Message format = angle,distance
+           message = "0,0.2"
+           sendSerial(message)
+           sleep(3)
            #Message format = angle,distance
            message = "-90,0"
            sendSerial(message)
