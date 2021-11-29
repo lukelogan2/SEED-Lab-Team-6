@@ -62,8 +62,8 @@ double Ki;
 
 //String str_distance;
 //String str_distance;
-double angle = 0;
-double distance = 0;
+double angle = 90;
+double distance = 0.2;
 
 double encoderSteps = 16*50;
 double theta = 360/encoderSteps;
@@ -101,7 +101,6 @@ void setup() {
 
 void loop() {
     // Read Serial Input from pi and print it
-//    while(!DataRead);
   if (DataRead) {
     DataRead = false;
     for (int i=0;i<data.length();i++) {
@@ -128,9 +127,7 @@ void loop() {
   else {
     stepMovement();
   }
-
-      
-  
+   
 }
 
 
@@ -140,11 +137,11 @@ void loop() {
 void stepRotation(){
   Kp = 25;
   Ki = 5;
-while(phi_e < 5 && phi_e > -5){
+
   /************************************************/  
   // Rotation Control
   /************************************************/
-    start_time = millis();
+    
     current_phi = (rightCount - leftCount)*theta*wheelRadius / wheelDistance;   //calculate the current angle
     //Serial.println(current_phi);
 
@@ -188,16 +185,14 @@ while(phi_e < 5 && phi_e > -5){
   /************************************************/  
   // Check to end rotation
   /************************************************/
-//      if(phi_e < 5 && phi_e > -5){
-//        setMotor(PWMR, 0, INR, 1);
-//        setMotor(PWML, 0, INL, 0);
-//        angle = 0;
-//        delay_time = millis();
-//  }
-last_time = start_time;
-angle = 0;
-phi_e = 0;
-}
+      if(phi_e < 5 && phi_e > -5){
+        setMotor(PWMR, 0, INR, 1);
+        setMotor(PWML, 0, INL, 0);
+        delay_time = millis();
+        leftCount = 0;
+        rightCount = 0;
+        angle = 0;
+  }
 }
 
 // ----------------------------------------------------------------------
@@ -209,7 +204,7 @@ void stepMovement() {
 /************************************************/  
 // Movement Control
 /************************************************/
-while(target_counts > totalCount){
+if(target_counts > totalCount){
       totalCount = (rightCount + leftCount) / 2;
       start_time = millis();
 
@@ -238,14 +233,14 @@ while(target_counts > totalCount){
 /************************************************/  
 // Turn off the motor to stop
 /************************************************/
-
+else{
       setMotor(PWMR, 0, INR, 1);    //call the motor function
       setMotor(PWML, 0, INL, 0);    //call the motor function
       digitalWrite(pwmPower, LOW);  //stop power to the motor
-      rightCount = 0;
-      leftCount = 0;
-      totalCount = 0;
-
+      movementComplete = 1;         
+      rotationComplete = 1;
+      step_count++;
+  }
     
 last_time = start_time;
 }
