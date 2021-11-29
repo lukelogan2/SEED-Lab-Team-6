@@ -147,9 +147,9 @@ def color_Mask(output):
     #path = '/home/pi/Desktop'
     #cv2.imwrite(os.path.join(path, 'color mask.jpg'), res)
     
-    #cv2.imshow('Object', res)
-    #cv2.waitKey(3000)
-    #cv2.destroyAllWindows()
+#    cv2.imshow('Object', res)
+#    cv2.waitKey(3000)
+#    cv2.destroyAllWindows()
     
     return res
     
@@ -205,7 +205,15 @@ def calc_AngleX(res):
                centerX = width/2
                centerY = length/2
                degPerPixel_X = fov_adj/width
-               pixelDelta = centerX-80 - aMeanX  #Adjust center point to match camera position by subtracting 80 from center
+               blueX = 0
+               count = 0
+               for i in range(0,len(a0[0])):
+                   if (a0[0][i] >= 400):
+                       count += 1
+                       blueX = blueX + a0[1][i]
+               blueX = blueX / count
+               #pixelDelta = centerX-80 - aMeanX  #Adjust center point to match camera position by subtracting 80 from center
+               pixelDelta = centerX-80 - blueX  #Adjust center point to match camera position by subtracting 80 from center
                angleDelta = pixelDelta * degPerPixel_X
                 
                #print('Object coordinates are: x ', aMeanX, 'and y ', aMeanY, '.\n')

@@ -194,13 +194,21 @@ def calc_AngleX(res):
                centerX = width/2
                centerY = length/2
                degPerPixel_X = fov_adj/width
-               pixelDelta = centerX-80 - aMeanX  #Adjust center point to match camera position by subtracting 80 from center
+               blueX = 0
+               count = 0
+               for i in range(0,len(a0[0])):
+                   if (a0[0][i] >= 400):
+                       count += 1
+                       blueX = blueX + a0[1][i]
+               blueX = blueX / count
+               #pixelDelta = centerX-80 - aMeanX  #Adjust center point to match camera position by subtracting 80 from center
+               pixelDelta = centerX-80 - blueX  #Adjust center point to match camera position by subtracting 80 from center
                angleDelta = pixelDelta * degPerPixel_X
                
                # If the angle is greater than 5 degrees, rotate to correct
                if angleDelta and abs(angleDelta) > 5:
                    # Message format = angle,distance
-                   message = str(angleDelta) + ",0"
+                   message = str(round(angleDelta,2)) + ",0"
                    sendSerial(message)
                # If the angle is less than 5 degrees, keep driving straight
                elif angleDelta:
@@ -210,9 +218,9 @@ def calc_AngleX(res):
                return 0
            else:
                # No tape seen, move forward and rotate 90 degrees
-               message = "0,0.2"
-               sendSerial(message)
-               sleep(3)
+#               message = "0,0.2"
+#               sendSerial(message)
+#               sleep(3)
                #Message format = angle,distance
                message = "-90,0"
                sendSerial(message)
@@ -222,9 +230,9 @@ def calc_AngleX(res):
     else: 
            # No tape seen, move forward and rotate 90 degrees
            #Message format = angle,distance
-           message = "0,0.2"
-           sendSerial(message)
-           sleep(3)
+#           message = "0,0.2"
+#           sendSerial(message)
+#           sleep(3)
            #Message format = angle,distance
            message = "-90,0"
            sendSerial(message)
