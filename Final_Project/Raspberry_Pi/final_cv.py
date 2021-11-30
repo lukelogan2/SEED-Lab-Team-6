@@ -20,7 +20,7 @@ lcd_rows = 2
 lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)        
 
 corners = 0 # Variable to keep track of the number of corners
-
+on_corner = False
 # Initialize serial communiction
 try:
     ser = serial.Serial('/dev/ttyACM0', baudrate=115200, write_timeout=2)
@@ -181,6 +181,7 @@ def calc_AngleX(res):
     a = np.array(res)
     a0 = np.nonzero(a)
     global corners
+    global on_corner
     #print(np.mean(a0, axis=1))
     if len(a0[0]) and len(a0[1]):
            #aMeanY, aMeanX, aMeanZ = np.nanmean(a0, axis=1, axis=0)
@@ -189,6 +190,7 @@ def calc_AngleX(res):
            #take object position (xaxis) and sub center pixel to find offset
            #multiple pixel offset by degrees per pixel to ifnd total degree off center
            if max(a0[0]) > 800 and len(a0[0]) > 4000:
+               on_corner = False
                width = res.shape[1]
                length = res.shape[0]
                centerX = width/2
@@ -213,31 +215,29 @@ def calc_AngleX(res):
                # If the angle is less than 5 degrees, keep driving straight
                elif angleDelta:
                    #Message format = angle,distance
-                   message = "0,0.1"
+                   message = "0,0.2"
                    sendSerial(message)
                return 0
            else:
-               # No tape seen, move forward and rotate 90 degrees
-#               message = "0,0.2"
-#               sendSerial(message)
-#               sleep(3)
-               #Message format = angle,distance
-               message = "-90,0"
-               sendSerial(message)
-               corners += 1
+               if not on_corner:
+                   # No tape seen, move forward and rotate 90 degrees
+                   #Message format = angle,distance
+                   message = "-90,0"
+                   rotating = True
+                   sendSerial(message)
+                   corners += 1
+                   on_corner = True
                return 1
            
-    else: 
+    else:
+        if not on_corner:
            # No tape seen, move forward and rotate 90 degrees
-           #Message format = angle,distance
-#           message = "0,0.2"
-#           sendSerial(message)
-#           sleep(3)
            #Message format = angle,distance
            message = "-90,0"
            sendSerial(message)
            corners += 1
-           return 1
+           on_corner = True
+        return 1
 
 def get_image():
     src = take_Pic(camera)

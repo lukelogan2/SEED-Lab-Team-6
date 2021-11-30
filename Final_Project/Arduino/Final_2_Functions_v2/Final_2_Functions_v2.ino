@@ -19,8 +19,8 @@ int leftEncoderCurrent = LOW;
 int leftEncoderLast = leftEncoderCurrent;
 
 bool moved = 0;
-bool rotationComplete = 0;
-bool movementComplete = 0;
+bool rotationComplete = 1;
+bool movementComplete = 1;
 
 volatile int rightCount = 0;
 volatile int leftCount = 0;
@@ -62,8 +62,8 @@ double Ki;
 
 //String str_distance;
 //String str_distance;
-double angle = 90;
-double distance = 0.2;
+double angle = 0;
+double distance = 0;
 
 double encoderSteps = 16*50;
 double theta = 360/encoderSteps;
@@ -101,7 +101,7 @@ void setup() {
 
 void loop() {
     // Read Serial Input from pi and print it
-  if (DataRead) {
+  if (DataRead && movementComplete && rotationComplete) {
     DataRead = false;
     for (int i=0;i<data.length();i++) {
       if(data[i] == ','){
@@ -135,6 +135,7 @@ void loop() {
 // Function to rotate a predetermined degrees 
 // ----------------------------------------------------------------------
 void stepRotation(){
+  rotationComplete = 0;
   Kp = 25;
   Ki = 5;
 
@@ -192,6 +193,8 @@ void stepRotation(){
         leftCount = 0;
         rightCount = 0;
         angle = 0;
+        errorSum = 0;
+        rotationComplete = 1;
   }
 }
 
@@ -199,6 +202,7 @@ void stepRotation(){
 // Function to Drive forwards a predetermined distance
 // ----------------------------------------------------------------------
 void stepMovement() {
+  movementComplete = 0;
   Kp = 35;
   Ki = 5;
 /************************************************/  
@@ -236,10 +240,14 @@ if(target_counts > totalCount){
 else{
       setMotor(PWMR, 0, INR, 1);    //call the motor function
       setMotor(PWML, 0, INL, 0);    //call the motor function
-      digitalWrite(pwmPower, LOW);  //stop power to the motor
-      movementComplete = 1;         
-      rotationComplete = 1;
+      digitalWrite(pwmPower, LOW);  //stop power to the motor        
       step_count++;
+      rightCount = 0;
+      leftCount = 0;
+      totalCount = 0;
+      errorSum = 0;
+      distance = 0;
+      movementComplete = 1; 
   }
     
 last_time = start_time;
