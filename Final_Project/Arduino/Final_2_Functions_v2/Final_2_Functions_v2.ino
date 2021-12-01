@@ -174,9 +174,9 @@ void stepRotation(){
   /************************************************/
 
     rightPower = fabs(u);
-    rightPower = constrain(rightPower, 0, 60);    //constrain the power to prevent slipping on slick surfaces
+    rightPower = constrain(rightPower, 0, 70);    //constrain the power to prevent slipping on slick surfaces
     leftPower = fabs(u);
-    leftPower = constrain(leftPower, 0, 65);      //constrain the power to prevent slipping on slick surfaces
+    leftPower = constrain(leftPower, 0, 75);      //constrain the power to prevent slipping on slick surfaces
     
 
     setMotor(PWMR, rightPower, INR, directionRight);    //call the motor function right motor based on direction needed to rotate
@@ -225,9 +225,9 @@ if(target_counts > totalCount){
 /************************************************/
    
       rightPower = fabs(u);
-      rightPower = constrain(rightPower, 0, 95);    //constrain the power to prevent slipping on slick surfaces
+      rightPower = constrain(rightPower, 0, 114);    //constrain the power to prevent slipping on slick surfaces
       leftPower = fabs(u);
-      leftPower = constrain(leftPower, 0, 101);     //constrain the power to prevent slipping on slick surfaces
+      leftPower = constrain(leftPower, 0, 120);     //constrain the power to prevent slipping on slick surfaces
 
       setMotor(PWMR, rightPower, INR, 1);   //call the motor function right motor forward
       setMotor(PWML, leftPower, INL, 0);    //call the motor function left motor forward

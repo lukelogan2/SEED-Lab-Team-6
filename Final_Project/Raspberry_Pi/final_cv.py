@@ -181,7 +181,6 @@ def calc_AngleX(res):
     a = np.array(res)
     a0 = np.nonzero(a)
     global corners
-    global on_corner
     #print(np.mean(a0, axis=1))
     if len(a0[0]) and len(a0[1]):
            #aMeanY, aMeanX, aMeanZ = np.nanmean(a0, axis=1, axis=0)
@@ -199,7 +198,7 @@ def calc_AngleX(res):
                blueX = 0
                count = 0
                for i in range(0,len(a0[0])):
-                   if (a0[0][i] >= 400):
+                   if (a0[0][i] >= 700):
                        count += 1
                        blueX = blueX + a0[1][i]
                blueX = blueX / count
@@ -208,36 +207,39 @@ def calc_AngleX(res):
                angleDelta = pixelDelta * degPerPixel_X
                
                # If the angle is greater than 5 degrees, rotate to correct
-               if angleDelta and abs(angleDelta) > 5:
+               if angleDelta and abs(angleDelta) > 15:
                    # Message format = angle,distance
                    message = str(round(angleDelta,2)) + ",0"
+                   sendSerial(message)
+                   sleep(2)
+                   message = "0,0.1"
                    sendSerial(message)
                # If the angle is less than 5 degrees, keep driving straight
                elif angleDelta:
                    #Message format = angle,distance
-                   message = "0,0.2"
+                   message = "0,0.1"
                    sendSerial(message)
                return 0
            else:
-               if not on_corner:
-                   # No tape seen, move forward and rotate 90 degrees
-                   #Message format = angle,distance
-                   message = "-90,0"
-                   rotating = True
-                   sendSerial(message)
-                   corners += 1
-                   on_corner = True
+               # No tape seen, move forward and rotate 90 degrees
+               #Message format = angle,distance
+               message = "-45,0"
+               rotating = True
+               sendSerial(message)
+               corners += 1
+               #on_corner = True
+               sleep(2)
                return 1
            
     else:
-        if not on_corner:
-           # No tape seen, move forward and rotate 90 degrees
-           #Message format = angle,distance
-           message = "-90,0"
-           sendSerial(message)
-           corners += 1
-           on_corner = True
-        return 1
+       # No tape seen, move forward and rotate 90 degrees
+       #Message format = angle,distance
+       message = "-45,0"
+       sendSerial(message)
+       corners += 1
+       on_corner = True
+       sleep(2)
+       return 1
 
 def get_image():
     src = take_Pic(camera)
@@ -254,7 +256,7 @@ def state1():
     # Follow the curve and the 1st corner
     res = get_image()
     newstate = calc_AngleX(res)
-    if newstate and corners == 3:
+    if newstate and corners == 10:
         return state2
     else:
         return state1
