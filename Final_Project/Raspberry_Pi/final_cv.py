@@ -180,6 +180,7 @@ def calc_AngleX(res):
     fov_adj = 62      #field of view of camera adjusting for 3 inch offset from center of rotation
     a = np.array(res)
     a0 = np.nonzero(a)
+    pix_total=np.count_nonzero(a)
     global corners
     #print(np.mean(a0, axis=1))
     if len(a0[0]) and len(a0[1]):
@@ -202,6 +203,12 @@ def calc_AngleX(res):
                        count += 1
                        blueX = blueX + a0[1][i]
                blueX = blueX / count
+               #print(count)
+               if count == 0:
+                   message = "0,0.1"
+                   sendSerial(message)
+               elif count > 130000:
+                   return 1
                #pixelDelta = centerX-80 - aMeanX  #Adjust center point to match camera position by subtracting 80 from center
                pixelDelta = centerX-80 - blueX  #Adjust center point to match camera position by subtracting 80 from center
                angleDelta = pixelDelta * degPerPixel_X
@@ -223,22 +230,22 @@ def calc_AngleX(res):
            else:
                # No tape seen, move forward and rotate 90 degrees
                #Message format = angle,distance
-               message = "-45,0"
+               message = "-30,0"
                rotating = True
                sendSerial(message)
                corners += 1
                #on_corner = True
-               sleep(2)
-               return 1
+               sleep(3)
+               return 0
            
     else:
        # No tape seen, move forward and rotate 90 degrees
        #Message format = angle,distance
-       message = "-45,0"
+       message = "-30,0"
        sendSerial(message)
        corners += 1
        on_corner = True
-       sleep(2)
+       sleep(3)
        return 1
 
 def get_image():
@@ -256,7 +263,7 @@ def state1():
     # Follow the curve and the 1st corner
     res = get_image()
     newstate = calc_AngleX(res)
-    if newstate and corners == 10:
+    if newstate:
         return state2
     else:
         return state1
@@ -265,7 +272,7 @@ def state2():
     print("state 2")
     # Navigate the gap to arrive at the end
     #Message format = angle,distance
-    message = "0,0.35"
+    message = "0,0.15"
     sendSerial(message)
     return state_done
 
