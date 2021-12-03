@@ -199,22 +199,23 @@ def calc_AngleX(res):
                blueX = 0
                count = 0
                for i in range(0,len(a0[0])):
-                   if (a0[0][i] >= 700):
+                   if (a0[0][i] >= 900):
                        count += 1
                        blueX = blueX + a0[1][i]
-               blueX = blueX / count
-               #print(count)
+               print("Count = " + str(count))
                if count == 0:
                    message = "0,0.1"
                    sendSerial(message)
-               elif count > 130000:
+               elif count > 100000:
                    return 1
+               else:
+                   blueX = blueX / count
                #pixelDelta = centerX-80 - aMeanX  #Adjust center point to match camera position by subtracting 80 from center
                pixelDelta = centerX-80 - blueX  #Adjust center point to match camera position by subtracting 80 from center
                angleDelta = pixelDelta * degPerPixel_X
                
                # If the angle is greater than 5 degrees, rotate to correct
-               if angleDelta and abs(angleDelta) > 15:
+               if angleDelta and abs(angleDelta) > 15 and abs(angleDelta) < 30:
                    # Message format = angle,distance
                    message = str(round(angleDelta,2)) + ",0"
                    sendSerial(message)
@@ -235,7 +236,7 @@ def calc_AngleX(res):
                sendSerial(message)
                corners += 1
                #on_corner = True
-               sleep(3)
+               sleep(2)
                return 0
            
     else:
@@ -245,8 +246,8 @@ def calc_AngleX(res):
        sendSerial(message)
        corners += 1
        on_corner = True
-       sleep(3)
-       return 1
+       sleep(2)
+       return 0
 
 def get_image():
     src = take_Pic(camera)
