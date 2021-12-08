@@ -1,14 +1,14 @@
-# SEED-Lab-Demo-2
+# SEED-Lab-Final
 
 ## Organization of this Repository
  - The code used for the Arduino to control the drive testing is located in the "Arduino" folder
  - The code used for the raspberry pi to control the computer vision is located in the "Raspberry Pi" folder
 
 ### Arduino
- - demo2_working_full is the working program where the robot searches for the tape, drives to it, and follows it to the end
- - demo2_working_half is the working program where the robot searches for the tape, drives to it, and stops
+ - Final_2_Functions_v2.ino is the working program where the robot follows the tape around the course
+
 ### Raspberry Pi
- - demo2_cv.py is the working python script used to execute computer vision with the pi camera
+ - Final_cv.py is the working python script used to execute computer vision with the pi camera
 
 ## Hardware Instructions
 Using the rover we designed...
